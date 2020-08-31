@@ -5,7 +5,7 @@ import sys
 
 author = "Paul Müller"
 authors = [author]
-description = ' Serve DC files via GET requests on DCOR '
+description = 'Serve DC files via GET requests on DCOR'
 name = 'ckanext-dc_serve'
 year = "2020"
 
