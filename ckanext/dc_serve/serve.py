@@ -4,7 +4,7 @@ from ckan import logic
 import ckan.plugins.toolkit as toolkit
 
 import dclab
-from dcor_shared import DC_MIME_TYPES, get_dataset_path
+from dcor_shared import DC_MIME_TYPES, get_resource_path
 
 
 # Required so that GET requests work
@@ -61,7 +61,7 @@ def dcserv(context, data_dict=None):
         raise logic.ValidationError("Invalid 'query' parameter")
 
     # Get the HDF5 file
-    path = pathlib.Path(get_dataset_path(context, resource))
+    path = pathlib.Path(get_resource_path(resource["id"]))
     if query == "valid":
         if path.exists() and resource["mimetype"] in DC_MIME_TYPES:
             data = True

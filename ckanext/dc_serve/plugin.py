@@ -1,7 +1,6 @@
 import ckan.plugins as p
 import ckan.plugins.toolkit as toolkit
 
-from dcor_shared import get_dataset_path
 from flask import Blueprint
 
 from .jobs import generate_condensed_dataset_job
@@ -34,9 +33,8 @@ class DCServePlugin(p.SingletonPlugin):
     # IResourceController
     def after_create(self, context, resource):
         """Generate preview image and html file"""
-        path = get_dataset_path(context, resource)
         toolkit.enqueue_job(generate_condensed_dataset_job,
-                            [path, resource],
+                            [resource],
                             title="Create condensed dataset",
                             rq_kwargs={"timeout": 3600})
 
