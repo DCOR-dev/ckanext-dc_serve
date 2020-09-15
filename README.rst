@@ -23,6 +23,7 @@ Installation
 
 
 Add this extension to the plugins and defaul_views in ckan.ini:
-```
-ckan.plugins = [...] dc_serve
-```
+
+::
+
+    ckan.plugins = [...] dc_serve
