@@ -32,11 +32,14 @@ class DCServePlugin(p.SingletonPlugin):
 
     # IResourceController
     def after_create(self, context, resource):
-        """Generate preview image and html file"""
+        """Generate condensed dataset"""
+        jid = "-".join([resource["id"], resource["name"], "condense"])
         toolkit.enqueue_job(generate_condensed_dataset_job,
                             [resource],
                             title="Create condensed dataset",
-                            rq_kwargs={"timeout": 3600})
+                            queue="dcor-long",
+                            rq_kwargs={"timeout": 3600,
+                                       "job_id": jid})
 
     # IActions
     def get_actions(self):
