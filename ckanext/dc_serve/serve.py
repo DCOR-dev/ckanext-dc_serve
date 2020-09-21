@@ -1,5 +1,3 @@
-import pathlib
-
 from ckan import logic
 import ckan.plugins.toolkit as toolkit
 
