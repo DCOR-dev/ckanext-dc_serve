@@ -61,7 +61,7 @@ def dcserv(context, data_dict=None):
         raise logic.ValidationError("Invalid 'query' parameter")
 
     # Get the HDF5 file
-    path = pathlib.Path(get_resource_path(resource["id"]))
+    path = get_resource_path(resource["id"])
     if query == "valid":
         if path.exists() and resource["mimetype"] in DC_MIME_TYPES:
             data = True
