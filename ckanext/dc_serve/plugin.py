@@ -1,4 +1,4 @@
-import ckan.plugins as p
+import ckan.plugins as plugins
 import ckan.plugins.toolkit as toolkit
 
 from flask import Blueprint
@@ -10,14 +10,14 @@ from .serve import dcserv
 from dcor_shared import DC_MIME_TYPES
 
 
-class DCServePlugin(p.SingletonPlugin):
-    p.implements(p.IBlueprint)
-    p.implements(p.IResourceController, inherit=True)
-    p.implements(p.IActions, inherit=True)
+class DCServePlugin(plugins.SingletonPlugin):
+    plugins.implements(plugins.IBlueprint)
+    plugins.implements(plugins.IResourceController, inherit=True)
+    plugins.implements(plugins.IActions, inherit=True)
 
     # IBlueprint
     def get_blueprint(self):
-        u'''Return a Flask Blueprint object to be registered by the app.'''
+        """Return a Flask Blueprint object to be registered by the app."""
 
         # Create Blueprint for plugin
         blueprint = Blueprint(self.name, self.__module__)
