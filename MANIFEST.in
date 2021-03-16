@@ -2,4 +2,4 @@ include README.rst
 include LICENSE
 include CHANGELOG
 include requirements.txt
-recursive-include ckanext/dc_serve *.html *.json *.js *.less *.css *.mo
+recursive-include ckanext/dc_serve *.html *.json *.js *.less *.css *.mo *.txt
