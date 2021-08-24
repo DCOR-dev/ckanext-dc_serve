@@ -70,7 +70,7 @@ def dcserv(context, data_dict=None):
             raise logic.ValidationError("Resource data type not supported")
         path_condensed = path.with_name(path.name + "_condensed.rtdc")
         if path_condensed.exists():
-            if (query == "feature" and feat in dclab.dfn.scalar_feature_names):
+            if query == "feature" and feat in dclab.dfn.scalar_feature_names:
                 # use the condensed dataset for scalar features
                 path = path_condensed
             # we need to know the condensed features

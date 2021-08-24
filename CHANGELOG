@@ -1,3 +1,6 @@
+0.4.9
+ - fix: condensed datasets were not created
+ - tests: increase coverage
 0.4.8
  - ci: fix coverage stats
 0.4.7
