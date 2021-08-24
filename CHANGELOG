@@ -1,3 +1,6 @@
+0.4.10
+ - fix: use dclab 0.35.3 to dump Configuration to json
+   before passing it to the server
 0.4.9
  - fix: condensed datasets were not created
  - tests: increase coverage

@@ -1,3 +1,5 @@
+import json
+
 from ckan import logic
 import ckan.plugins.toolkit as toolkit
 
@@ -80,7 +82,7 @@ def dcserv(context, data_dict=None):
             features_condensed = []
         with dclab.rtdc_dataset.fmt_hdf5.RTDC_HDF5(path) as ds:
             if query == "metadata":
-                data = dict(ds.config)
+                data = json.loads(ds.config.tojson())
             elif query == "feature_list":
                 data = sorted(set(ds.features_loaded + features_condensed))
             elif query == "size":
