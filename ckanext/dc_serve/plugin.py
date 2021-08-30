@@ -36,13 +36,13 @@ class DCServePlugin(plugins.SingletonPlugin):
     def after_create(self, context, resource):
         """Generate condensed dataset"""
         if resource.get('mimetype') in DC_MIME_TYPES:
-            jid = "-".join([resource["id"], resource["name"], "condense"])
+            pkg_job_id = f"{resource['package_id']}_{resource['position']}_"
             toolkit.enqueue_job(generate_condensed_dataset_job,
                                 [resource],
                                 title="Create condensed dataset",
                                 queue="dcor-long",
                                 rq_kwargs={"timeout": 3600,
-                                           "job_id": jid})
+                                           "job_id": pkg_job_id + "condense"})
 
     # IActions
     def get_actions(self):
