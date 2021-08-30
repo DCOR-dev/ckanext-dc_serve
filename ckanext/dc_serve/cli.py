@@ -13,8 +13,8 @@ def click_echo(message, am_on_a_new_line):
 
 
 @click.command()
-def run_jobs_dc_view():
-    """Compute preview image for all .rtdc files
+def run_jobs_dc_serve():
+    """Compute condensed resource all .rtdc files
 
     This also happens for draft datasets.
     """
@@ -44,4 +44,4 @@ def run_jobs_dc_view():
 
 
 def get_commands():
-    return [run_jobs_dc_view]
+    return [run_jobs_dc_serve]
