@@ -16,6 +16,12 @@ This plugin implements:
   "/dataset/{id}/resource/{resource_id}/condensed.rtdc"
 
 
+- CLI:
+
+  - add CKAN command `run-jobs-dc-serve` that runs all background
+    jobs for all resources (if not already done)
+
+
 Installation
 ------------
 

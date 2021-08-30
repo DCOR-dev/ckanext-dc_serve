@@ -3,7 +3,8 @@ import ckan.plugins.toolkit as toolkit
 
 from flask import Blueprint
 
-from .jobs import generate_condensed_dataset_job
+from .cli import get_commands
+from .jobs import generate_condensed_resource_job
 from .route_funcs import dccondense
 from .serve import dcserv
 
@@ -12,6 +13,7 @@ from dcor_shared import DC_MIME_TYPES
 
 class DCServePlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IBlueprint)
+    plugins.implements(plugins.IClick)
     plugins.implements(plugins.IResourceController, inherit=True)
     plugins.implements(plugins.IActions, inherit=True)
 
@@ -32,12 +34,16 @@ class DCServePlugin(plugins.SingletonPlugin):
             blueprint.add_url_rule(*rule)
         return blueprint
 
+    # IClick
+    def get_commands(self):
+        return get_commands()
+
     # IResourceController
     def after_create(self, context, resource):
         """Generate condensed dataset"""
         if resource.get('mimetype') in DC_MIME_TYPES:
             pkg_job_id = f"{resource['package_id']}_{resource['position']}_"
-            toolkit.enqueue_job(generate_condensed_dataset_job,
+            toolkit.enqueue_job(generate_condensed_resource_job,
                                 [resource],
                                 title="Create condensed dataset",
                                 queue="dcor-long",
