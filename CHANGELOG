@@ -1,3 +1,6 @@
+0.5.4
+ - enh: use subprocessing to avoid memory leaks when creating
+   condensed datasets
 0.5.3
  - fix: wrong name for CLI
 0.5.2
