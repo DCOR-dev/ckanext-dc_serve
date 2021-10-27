@@ -1,3 +1,6 @@
+import datetime
+import time
+
 import ckan.model as model
 
 import click
@@ -12,14 +15,24 @@ def click_echo(message, am_on_a_new_line):
     click.echo(message)
 
 
+@click.option('--modified-days', default=-1,
+              help='Only run for datasets modified within this number of days '
+                   + 'in the past. Set to -1 to apply to all datasets.')
 @click.command()
-def run_jobs_dc_serve():
+def run_jobs_dc_serve(modified_days=-1):
     """Compute condensed resource all .rtdc files
 
     This also happens for draft datasets.
     """
     # go through all datasets
     datasets = model.Session.query(model.Package)
+
+    if modified_days >= 0:
+        # Search only the last `days` days.
+        past = datetime.date.today() - datetime.timedelta(days=modified_days)
+        past_str = time.strftime("%Y-%m-%d", past.timetuple())
+        datasets = datasets.filter(model.Package.metadata_modified >= past_str)
+
     nl = False  # new line character
     for dataset in datasets:
         nl = False
