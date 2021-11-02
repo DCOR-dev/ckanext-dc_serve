@@ -2,6 +2,7 @@ import ckan.plugins as plugins
 import ckan.plugins.toolkit as toolkit
 
 from flask import Blueprint
+from rq.job import Job
 
 from .cli import get_commands
 from .jobs import generate_condensed_resource_job
@@ -43,12 +44,14 @@ class DCServePlugin(plugins.SingletonPlugin):
         """Generate condensed dataset"""
         if resource.get('mimetype') in DC_MIME_TYPES:
             pkg_job_id = f"{resource['package_id']}_{resource['position']}_"
-            toolkit.enqueue_job(generate_condensed_resource_job,
-                                [resource],
-                                title="Create condensed dataset",
-                                queue="dcor-long",
-                                rq_kwargs={"timeout": 3600,
-                                           "job_id": pkg_job_id + "condense"})
+            jid_condense = pkg_job_id + "condense"
+            if not Job.exists(jid_condense):
+                toolkit.enqueue_job(generate_condensed_resource_job,
+                                    [resource],
+                                    title="Create condensed dataset",
+                                    queue="dcor-long",
+                                    rq_kwargs={"timeout": 3600,
+                                               "job_id": jid_condense})
 
     # IActions
     def get_actions(self):
