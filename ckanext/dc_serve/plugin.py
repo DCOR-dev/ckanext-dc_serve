@@ -1,3 +1,4 @@
+from ckan.lib.jobs import _connect as ckan_redis_connect
 import ckan.plugins as plugins
 import ckan.plugins.toolkit as toolkit
 
@@ -45,7 +46,7 @@ class DCServePlugin(plugins.SingletonPlugin):
         if resource.get('mimetype') in DC_MIME_TYPES:
             pkg_job_id = f"{resource['package_id']}_{resource['position']}_"
             jid_condense = pkg_job_id + "condense"
-            if not Job.exists(jid_condense):
+            if not Job.exists(jid_condense, connection=ckan_redis_connect()):
                 toolkit.enqueue_job(generate_condensed_resource_job,
                                     [resource],
                                     title="Create condensed dataset",
