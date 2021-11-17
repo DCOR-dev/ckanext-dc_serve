@@ -1,3 +1,6 @@
+0.7.0
+ - enh: introduce resource file locks on /tmp to avoid condensing
+   the same resource in different processes
 0.6.4
  - fix: add redis connection
 0.6.3
