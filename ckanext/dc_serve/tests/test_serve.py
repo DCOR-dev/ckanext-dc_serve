@@ -158,7 +158,7 @@ def test_api_dcserv_error_feature(app, create_with_upload):
                 "query": "feature",
                 },
         headers={u"authorization": data["token"]},
-        status=404
+        status=409
         )
     jres = json.loads(resp.body)
     assert not jres["success"]
@@ -172,7 +172,7 @@ def test_api_dcserv_error_feature(app, create_with_upload):
                 "feature": "image",
                 },
         headers={u"authorization": data["token"]},
-        status=404
+        status=409
         )
     jres = json.loads(resp.body)
     assert not jres["success"]
@@ -186,7 +186,7 @@ def test_api_dcserv_error_feature(app, create_with_upload):
                 "feature": "peter",
                 },
         headers={u"authorization": data["token"]},
-        status=404
+        status=409
         )
     jres = json.loads(resp.body)
     assert not jres["success"]
@@ -200,7 +200,7 @@ def test_api_dcserv_error_feature(app, create_with_upload):
                 "feature": "ml_scor_xyz",
                 },
         headers={u"authorization": data["token"]},
-        status=404
+        status=409
         )
     jres = json.loads(resp.body)
     assert not jres["success"]
