@@ -38,9 +38,9 @@ def dcserv(context, data_dict=None):
 
     # Check required parameters
     if "query" not in data_dict:
-        raise logic.ValidationError("Please specify 'query' parameter")
+        raise logic.ValidationError("Please specify 'query' parameter!")
     if "id" not in data_dict:
-        raise logic.ValidationError("Please specify 'id' parameter")
+        raise logic.ValidationError("Please specify 'id' parameter!")
     query = data_dict["query"]
     res_id = data_dict["id"]
     path = get_resource_path(res_id)
