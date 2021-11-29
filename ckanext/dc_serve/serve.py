@@ -1,7 +1,8 @@
 import functools
 import json
 
-from ckan import logic
+import ckan.logic as logic
+import ckan.model as model
 import ckan.plugins.toolkit as toolkit
 
 import dclab
@@ -45,7 +46,7 @@ def dcserv(context, data_dict=None):
     path = get_resource_path(res_id)
 
     # Check whether we actually have an .rtdc dataset
-    if not is_rtdc_resource(context, res_id):
+    if not is_rtdc_resource(res_id):
         raise logic.ValidationError(
             f"Resource ID {res_id} must be an .rtdc dataset!")
 
@@ -76,17 +77,19 @@ def dcserv(context, data_dict=None):
 
 
 @functools.lru_cache(maxsize=1024)
-def is_rtdc_resource(context, dataset_id):
-    model = context['model']
-    resource = model.Resource.get(dataset_id)
+def is_rtdc_resource(res_id):
+    resource = model.Resource.get(res_id)
     return resource.mimetype in DC_MIME_TYPES
 
 
 @functools.lru_cache(maxsize=128)
 def get_feature_list(path):
     path_condensed = path.with_name(path.name + "_condensed.rtdc")
-    with dclab.rtdc_dataset.fmt_hdf5.RTDC_HDF5(path_condensed) as dsc:
-        features_condensed = dsc.features_loaded
+    if path_condensed.exists():
+        with dclab.rtdc_dataset.fmt_hdf5.RTDC_HDF5(path_condensed) as dsc:
+            features_condensed = dsc.features_loaded
+    else:
+        features_condensed = []
     with dclab.rtdc_dataset.fmt_hdf5.RTDC_HDF5(path) as ds:
         features_original = ds.features_loaded
     return sorted(set(features_condensed + features_original))
