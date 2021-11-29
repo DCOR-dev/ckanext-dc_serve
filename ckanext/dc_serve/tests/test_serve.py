@@ -115,11 +115,10 @@ def test_api_dcserv_error(app, create_with_upload):
     assert "Not found" in jres["error"]["message"]
 
     # invalid query
-    bid = str(uuid.uuid4())
     resp = app.get(
         "/api/3/action/dcserv",
         params={"query": "peter",
-                "id": bid,
+                "id": res["id"],
                 },
         headers={u"authorization": data["token"]},
         status=409
