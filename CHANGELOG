@@ -1,3 +1,6 @@
+0.8.1
+ - fix: download buttons are broken
+ - ref: optimize serving data in serve.py
 0.8.0
  - feat: move template code for resource download buttons here from the
    dcor_theme extension

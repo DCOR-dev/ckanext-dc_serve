@@ -16,7 +16,7 @@
       <li>
         <div class="btn-group">
         {# https://github.com/ckan/ckan/issues/6564 #}
-        <a class="btn btn-primary resource-url-analytics resource-type-{{ res.resource_type }}" href="{{ res.url }} download="{{ res.name }}"">
+        <a class="btn btn-primary resource-url-analytics resource-type-{{ res.resource_type }}" href="{{ res.url }}" download="{{ res.name }}">
           {% if res.resource_type in ('listing', 'service') %}
             <i class="fa fa-eye"></i> {{ _('View') }}
           {% elif  res.resource_type == 'api' %}

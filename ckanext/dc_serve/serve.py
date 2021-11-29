@@ -1,3 +1,4 @@
+import functools
 import json
 
 from ckan import logic
@@ -30,78 +31,107 @@ def dcserv(context, data_dict=None):
     numpy.asarray to convert back to a numpy array).
     """
     # Perform all authorization checks for the resource
-    resource_show = logic.get_action("resource_show")
-    resource_show(context, data_dict)
-    # Make sure that we are looking at RT-DC data
-    model = context['model']
-    resource = model.Resource.get(data_dict["id"]).as_dict()
-    # Check possible entries in data_dict
+    logic.check_access("resource_show",
+                       context=context,
+                       data_dict={"id": data_dict["id"]})
+
+    # Check required parameters
     if "query" not in data_dict:
         raise logic.ValidationError("Please specify 'query' parameter")
+    if "id" not in data_dict:
+        raise logic.ValidationError("Please specify 'id' parameter")
     query = data_dict["query"]
-    if query in ["metadata", "feature_list", "size", "trace_list", "valid"]:
-        pass
-    elif query == "feature" and "feature" not in data_dict:
-        raise logic.ValidationError("Please specify 'feature' parameter")
-    elif query == "trace":
-        if "trace" not in data_dict:
-            raise logic.ValidationError("Please specify 'trace' parameter")
-        if "event" not in data_dict:
-            raise logic.ValidationError("Please specify 'event' for trace")
-        trace = data_dict["trace"]
-    elif query == "feature":
-        feat = data_dict["feature"]
-        if feat not in dclab.dfn.feature_names:
-            raise logic.ValidationError("Unknown feature name")
-        elif feat not in dclab.dfn.scalar_feature_names:
-            if "event" not in data_dict:
-                raise logic.ValidationError(
-                    "Please specify 'event' for non-scalar features")
-    else:
-        raise logic.ValidationError("Invalid 'query' parameter")
+    res_id = data_dict["id"]
+    path = get_resource_path(res_id)
 
-    # Get the HDF5 file
-    path = get_resource_path(resource["id"])
-    if query == "valid":
-        if path.exists() and resource["mimetype"] in DC_MIME_TYPES:
-            data = True
-        else:
-            data = False
-    else:
-        if resource["mimetype"] not in DC_MIME_TYPES:
-            raise logic.ValidationError("Resource data type not supported")
-        path_condensed = path.with_name(path.name + "_condensed.rtdc")
-        if path_condensed.exists():
-            if query == "feature" and feat in dclab.dfn.scalar_feature_names:
-                # use the condensed dataset for scalar features
-                path = path_condensed
-            # we need to know the condensed features
-            with dclab.rtdc_dataset.fmt_hdf5.RTDC_HDF5(path_condensed) as dsc:
-                features_condensed = dsc.features_loaded
-        else:
-            features_condensed = []
+    # Check whether we actually have an .rtdc dataset
+    if not is_rtdc_resource(context, res_id):
+        raise logic.ValidationError(
+            f"Resource ID {res_id} must be an .rtdc dataset!")
+
+    if query == "feature":
+        data = get_feature_data(data_dict, path)
+    elif query == "feature_list":
+        data = get_feature_list(path)
+    elif query == "metadata":
         with dclab.rtdc_dataset.fmt_hdf5.RTDC_HDF5(path) as ds:
-            if query == "metadata":
-                data = json.loads(ds.config.tojson())
-            elif query == "feature_list":
-                data = sorted(set(ds.features_loaded + features_condensed))
-            elif query == "size":
-                return len(ds)
-            elif query == "trace_list":
-                if "trace" in ds:
-                    return sorted(ds["trace"].keys())
-                else:
-                    return []
-            elif query == "trace":
-                event = int(data_dict["event"])
-                data = ds["trace"][trace][event].tolist()
+            data = json.loads(ds.config.tojson())
+    elif query == "size":
+        with dclab.rtdc_dataset.fmt_hdf5.RTDC_HDF5(path) as ds:
+            data = len(ds)
+    elif query == "trace":
+        data = get_trace_data(data_dict, path)
+    elif query == "trace_list":
+        with dclab.rtdc_dataset.fmt_hdf5.RTDC_HDF5(path) as ds:
+            if "trace" in ds:
+                data = sorted(ds["trace"].keys())
             else:
-                if feat in ds.features_loaded:
-                    if feat in dclab.dfn.scalar_feature_names:
-                        data = ds[feat].tolist()
-                    else:
-                        event = int(data_dict["event"])
-                        data = ds[feat][event].tolist()
-                else:
-                    raise logic.ValidationError("Feature not available")
+                data = []
+    elif query == "valid":
+        data = path.exists()
+    else:
+        raise logic.ValidationError(f"Invalid query parameter '{query}'!")
+
+    return data
+
+
+@functools.lru_cache(maxsize=1024)
+def is_rtdc_resource(context, dataset_id):
+    model = context['model']
+    resource = model.Resource.get(dataset_id)
+    return resource.mimetype in DC_MIME_TYPES
+
+
+@functools.lru_cache(maxsize=128)
+def get_feature_list(path):
+    path_condensed = path.with_name(path.name + "_condensed.rtdc")
+    with dclab.rtdc_dataset.fmt_hdf5.RTDC_HDF5(path_condensed) as dsc:
+        features_condensed = dsc.features_loaded
+    with dclab.rtdc_dataset.fmt_hdf5.RTDC_HDF5(path) as ds:
+        features_original = ds.features_loaded
+    return sorted(set(features_condensed + features_original))
+
+
+def get_feature_data(data_dict, path):
+    query = data_dict["query"]
+    # sanity checks
+    if query == "feature" and "feature" not in data_dict:
+        raise logic.ValidationError("Please specify 'feature' parameter!")
+
+    feat = data_dict["feature"]
+    is_scalar = dclab.dfn.scalar_feature_exists(feat)
+    path_condensed = path.with_name(path.name + "_condensed.rtdc")
+
+    if is_scalar and path_condensed.exists():
+        path = path_condensed
+
+    feature_list = get_feature_list(path)
+    if feat in feature_list:
+        with dclab.rtdc_dataset.fmt_hdf5.RTDC_HDF5(path) as ds:
+            if is_scalar:
+                data = ds[feat].tolist()
+            else:
+                if "event" not in data_dict:
+                    raise logic.ValidationError("Please specify 'event' for "
+                                                + f"non-scalar feature {feat}!"
+                                                )
+                event = int(data_dict["event"])
+                data = ds[feat][event].tolist()
+    elif not dclab.dfn.feature_exists(feat):
+        raise logic.ValidationError(f"Unknown feature name '{feat}'!")
+    else:
+        raise logic.ValidationError(f"Feature '{feat}' not available!")
+    return data
+
+
+def get_trace_data(data_dict, path):
+    if "trace" not in data_dict:
+        raise logic.ValidationError("Please specify 'trace' parameter!")
+    if "event" not in data_dict:
+        raise logic.ValidationError("Please specify 'event' for trace!")
+    event = int(data_dict["event"])
+    trace = data_dict["trace"]
+
+    with dclab.rtdc_dataset.fmt_hdf5.RTDC_HDF5(path) as ds:
+        data = ds["trace"][trace][event].tolist()
     return data
