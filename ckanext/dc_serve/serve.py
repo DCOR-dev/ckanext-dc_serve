@@ -125,7 +125,7 @@ def get_feature_data(data_dict, path):
     elif not dclab.dfn.feature_exists(feat):
         raise logic.ValidationError(f"Unknown feature name '{feat}'!")
     else:
-        raise logic.ValidationError(f"Feature '{feat}' not available!")
+        raise logic.ValidationError(f"Feature '{feat}' unavailable!")
     return data
 
 
