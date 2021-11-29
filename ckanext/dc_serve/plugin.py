@@ -6,9 +6,11 @@ from flask import Blueprint
 from rq.job import Job
 
 from .cli import get_commands
+from . import helpers as dcor_helpers
 from .jobs import generate_condensed_resource_job
 from .route_funcs import dccondense
 from .serve import dcserv
+
 
 from dcor_shared import DC_MIME_TYPES
 
@@ -18,6 +20,7 @@ class DCServePlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IClick)
     plugins.implements(plugins.IResourceController, inherit=True)
     plugins.implements(plugins.IActions, inherit=True)
+    plugins.implements(plugins.ITemplateHelpers)
 
     # IBlueprint
     def get_blueprint(self):
@@ -58,3 +61,13 @@ class DCServePlugin(plugins.SingletonPlugin):
     def get_actions(self):
         # Registers the custom API method defined above
         return {'dcserv': dcserv}
+
+    # ITemplateHelpers
+    def get_helpers(self):
+        # Template helper function names should begin with the name of the
+        # extension they belong to, to avoid clashing with functions from
+        # other extensions.
+        hlps = {
+            'dc_serve_': dcor_helpers.resource_has_condensed,
+            }
+        return hlps

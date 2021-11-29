@@ -1,3 +1,8 @@
+0.8.0
+ - feat: move template code for resource download buttons here from the
+   dcor_theme extension
+ - feat: only show condensed resource download button if the resource
+   has been condensed
 0.7.0
  - enh: introduce resource file locks on /tmp to avoid condensing
    the same resource in different processes

@@ -14,7 +14,7 @@ This plugin implements:
   has been created.
 - A route that makes the condensed dataset available via
   "/dataset/{id}/resource/{resource_id}/condensed.rtdc"
-
+- Extends the template to show a condensed resource download button
 
 - CLI:
 
