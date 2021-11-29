@@ -15,8 +15,9 @@ def dcserv(context, data_dict=None):
     """Serve DC data as json via the CKAN API
 
     Required parameters are 'id' (resource id) and
-    'query' ('metadata', 'feature_list', 'size', 'trace_list',
-    'feature', 'trace', 'valid').
+    'query' ('feature', 'feature_list', 'metadata', 'size',
+    'trace', 'trace_list', 'valid').
+
     In case 'query=feature', the parameter 'feature' must
     be set to a valid feature name (e.g. 'feature=deform') and,
     for non-scalar features only, 'event' (event index within
@@ -31,16 +32,17 @@ def dcserv(context, data_dict=None):
     or the requested data converted to a list (use
     numpy.asarray to convert back to a numpy array).
     """
-    # Perform all authorization checks for the resource
-    logic.check_access("resource_show",
-                       context=context,
-                       data_dict={"id": data_dict["id"]})
-
     # Check required parameters
     if "query" not in data_dict:
         raise logic.ValidationError("Please specify 'query' parameter!")
     if "id" not in data_dict:
         raise logic.ValidationError("Please specify 'id' parameter!")
+
+    # Perform all authorization checks for the resource
+    logic.check_access("resource_show",
+                       context=context,
+                       data_dict={"id": data_dict["id"]})
+
     query = data_dict["query"]
     res_id = data_dict["id"]
     path = get_resource_path(res_id)

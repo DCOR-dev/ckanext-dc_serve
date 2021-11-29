@@ -66,7 +66,7 @@ class DCServePlugin(plugins.SingletonPlugin):
 
     # IActions
     def get_actions(self):
-        # Registers the custom API method defined above
+        # Registers the custom API method
         return {'dcserv': dcserv}
 
     # ITemplateHelpers
