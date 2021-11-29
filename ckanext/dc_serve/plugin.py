@@ -18,6 +18,7 @@ from dcor_shared import DC_MIME_TYPES
 class DCServePlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IBlueprint)
     plugins.implements(plugins.IClick)
+    plugins.implements(plugins.IConfigurer, inherit=True)
     plugins.implements(plugins.IResourceController, inherit=True)
     plugins.implements(plugins.IActions, inherit=True)
     plugins.implements(plugins.ITemplateHelpers)
@@ -42,6 +43,12 @@ class DCServePlugin(plugins.SingletonPlugin):
     # IClick
     def get_commands(self):
         return get_commands()
+
+    # IConfigurer
+    def update_config(self, config):
+        # Add this plugin's templates dir to CKAN's extra_template_paths, so
+        # that CKAN will use this plugin's custom templates.
+        toolkit.add_template_directory(config, 'templates')
 
     # IResourceController
     def after_create(self, context, resource):
