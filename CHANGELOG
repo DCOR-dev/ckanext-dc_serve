@@ -1,7 +1,5 @@
-0.8.1
+0.9.0
  - fix: download buttons are broken
- - fix: dcserv not working if no condensed dataset present
- - fix: dcserv not working (unhashable dict error)
  - tests: increase coverage
  - ref: optimize serving data in serve.py
 0.8.0
