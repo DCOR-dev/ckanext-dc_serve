@@ -75,6 +75,7 @@ class DCServePlugin(plugins.SingletonPlugin):
         # extension they belong to, to avoid clashing with functions from
         # other extensions.
         hlps = {
-            'dc_serve_': dcor_helpers.resource_has_condensed,
+            'dc_serve_resource_has_condensed':
+                dcor_helpers.resource_has_condensed,
             }
         return hlps

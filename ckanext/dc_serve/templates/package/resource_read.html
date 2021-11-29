@@ -31,7 +31,7 @@
         {% block download_resource_button %}
            {# Download Condensed button #}
 
-            {% if res.mimetype == "RT-DC" and h.dc_server_resource_has_condensed(res.id) %}
+            {% if res.mimetype == "RT-DC" and h.dc_serve_resource_has_condensed(res.id) %}
                 <a class="btn btn-primary resource-url-analytics resource-type-{{ res.resource_type }}" href="{{ res.url.rsplit('/', 2)[0]}}/condensed.rtdc" download="{{ res.name.rsplit('.', 1)[0]}}_condensed.rtdc" title="Smaller file containing only (but all possible) scalar features">
                 <i class="fa fa-angle-double-down"></i> {{ _('Download Condensed') }}
                 </a>
