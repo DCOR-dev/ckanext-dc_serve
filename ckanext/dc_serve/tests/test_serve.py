@@ -197,7 +197,7 @@ def test_api_dcserv_error_feature(app, create_with_upload):
         "/api/3/action/dcserv",
         params={"id": res["id"],
                 "query": "feature",
-                "feature": "ml_scor_xyz",
+                "feature": "ml_score_xyz",
                 },
         headers={u"authorization": data["token"]},
         status=409
