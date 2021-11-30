@@ -1,5 +1,6 @@
 0.9.1
  - tests: increase coverage
+ - fix: trace not properly provided via API
  - fix: wrong symbol in Download button
 0.9.0
  - fix: download buttons are broken

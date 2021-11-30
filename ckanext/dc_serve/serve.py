@@ -1,5 +1,6 @@
 import functools
 import json
+import warnings
 
 import ckan.logic as logic
 import ckan.model as model
@@ -63,7 +64,12 @@ def dcserv(context, data_dict=None):
         with dclab.rtdc_dataset.fmt_hdf5.RTDC_HDF5(path) as ds:
             data = len(ds)
     elif query == "trace":
-        data = get_trace_data(data_dict, path)
+        warnings.warn("A dc_serve client is using the 'trace' query!",
+                      DeprecationWarning)
+        # backwards-compatibility
+        data_dict["query"] = "feature"
+        data_dict["feature"] = "trace"
+        data = get_feature_data(data_dict, path)
     elif query == "trace_list":
         with dclab.rtdc_dataset.fmt_hdf5.RTDC_HDF5(path) as ds:
             if "trace" in ds:
@@ -120,8 +126,11 @@ def get_feature_data(data_dict, path):
                     raise logic.ValidationError("Please specify 'event' for "
                                                 + f"non-scalar feature {feat}!"
                                                 )
-                event = int(data_dict["event"])
-                data = ds[feat][event].tolist()
+                if feat == "trace":
+                    data = get_trace_data(data_dict, path)
+                else:
+                    event = int(data_dict["event"])
+                    data = ds[feat][event].tolist()
     elif not dclab.dfn.feature_exists(feat):
         raise logic.ValidationError(f"Unknown feature name '{feat}'!")
     else:
@@ -132,8 +141,6 @@ def get_feature_data(data_dict, path):
 def get_trace_data(data_dict, path):
     if "trace" not in data_dict:
         raise logic.ValidationError("Please specify 'trace' parameter!")
-    if "event" not in data_dict:
-        raise logic.ValidationError("Please specify 'event' for trace!")
     event = int(data_dict["event"])
     trace = data_dict["trace"]
 
