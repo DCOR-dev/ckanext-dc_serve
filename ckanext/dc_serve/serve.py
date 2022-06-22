@@ -8,6 +8,7 @@ import ckan.plugins.toolkit as toolkit
 
 import dclab
 from dcor_shared import DC_MIME_TYPES, get_resource_path
+import numpy as np
 
 
 # Required so that GET requests work
@@ -120,7 +121,7 @@ def get_feature_data(data_dict, path):
     if feat in feature_list:
         with dclab.rtdc_dataset.fmt_hdf5.RTDC_HDF5(path) as ds:
             if is_scalar:
-                data = ds[feat].tolist()
+                data = np.array(ds[feat]).tolist()
             else:
                 if "event" not in data_dict:
                     raise logic.ValidationError("Please specify 'event' for "
