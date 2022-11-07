@@ -20,7 +20,7 @@ def click_echo(message, am_on_a_new_line):
                    + 'in the past. Set to -1 to apply to all datasets.')
 @click.command()
 def run_jobs_dc_serve(modified_days=-1):
-    """Compute condensed resource all .rtdc files
+    """Compute condensed resources for all .rtdc files
 
     This also happens for draft datasets.
     """

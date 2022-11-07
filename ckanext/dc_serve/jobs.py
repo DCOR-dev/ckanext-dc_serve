@@ -28,7 +28,7 @@ def generate_condensed_resource_job(resource, override=False):
                 # resource.
                 if fl.is_locked:
                     # run in subprocess to circumvent memory leak
-                    # https://github.com/ZELLMECHANIK-DRESDEN/dclab/issues/138
+                    # https://github.com/DC-analysis/dclab/issues/138
                     # condense(path_out=cond, path_in=path, check_suffix=False)
                     p = multiprocessing.Process(target=condense,
                                                 args=(cond, path, False))
