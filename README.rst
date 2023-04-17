@@ -61,7 +61,7 @@ following commands in the root of this repository:
 
 .. |PyPI Version| image:: https://img.shields.io/pypi/v/ckanext.dc_serve.svg
    :target: https://pypi.python.org/pypi/ckanext.dc_serve
-.. |Build Status| image:: https://img.shields.io/github/workflow/status/DCOR-dev/ckanext-dc_serve/Checks
+.. |Build Status| image:: https://img.shields.io/github/actions/workflow/status/DCOR-dev/ckanext-dc_serve/check.yml
    :target: https://github.com/DCOR-dev/ckanext-dc_serve/actions?query=workflow%3AChecks
 .. |Coverage Status| image:: https://img.shields.io/codecov/c/github/DCOR-dev/ckanext-dc_serve
    :target: https://codecov.io/gh/DCOR-dev/ckanext-dc_serve
