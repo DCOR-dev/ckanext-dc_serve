@@ -1,4 +1,5 @@
 0.9.5
+ - fix: support dclab 0.49.1 (condense has new kwarg)
  - ref: cleanup
 0.9.4
  - fix: properly support dclab 0.43.0 (HDF5Scalar feature and `tolist`)

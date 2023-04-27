@@ -22,7 +22,7 @@ def generate_condensed_resource_job(resource, override=False):
                 # If the lock could not be acquired, that means that another
                 # process is currently doing what we are attempting to do, so
                 # we can just ignore this resource. The reason why I
-                # implemented this is because I wanted to add an automated
+                # implemented this is that I wanted to add an automated
                 # background job for generating missing condensed files, but
                 # then several processes would end up condensing the same
                 # resource.
@@ -31,7 +31,7 @@ def generate_condensed_resource_job(resource, override=False):
                     # https://github.com/DC-analysis/dclab/issues/138
                     # condense(path_out=cond, path_in=path, check_suffix=False)
                     p = multiprocessing.Process(target=condense,
-                                                args=(cond, path, False))
+                                                args=(cond, path, True, False))
                     p.start()
                     p.join()
                     return True
