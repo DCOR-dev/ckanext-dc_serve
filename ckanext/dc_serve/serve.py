@@ -189,7 +189,7 @@ def dcserv(context, data_dict=None):
             elif query == "tables":
                 data = {}
                 for tab in ds.tables:
-                    data[tab] = (ds.tables.dtype.names,
+                    data[tab] = (ds.tables[tab].dtype.names,
                                  ds.tables[tab].tolist())
             elif query == "trace":
                 warnings.warn("A dc_serve client is using the 'trace' query!",
