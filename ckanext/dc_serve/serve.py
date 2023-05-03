@@ -139,13 +139,14 @@ def dcserv(context, data_dict=None):
        'feature=trace', then in addition to the 'event' key, the
        'trace' key (e.g. 'trace=fl1_raw') must also be set.
      - 'feature_list': a list of available features
+     - 'logs': dictionary of logs
      - 'metadata': the metadata configuration dictionary
      - 'size': the number of events in the dataset
      - 'trace_list': list of available traces
      - 'valid': whether the corresponding .rtdc file is accessible.
 
     The "result" value will either be a dictionary
-    resembling RTDCBase.config (query=metadata),
+    resembling RTDCBase.config (e.g. query=metadata),
     a list of available features (query=feature_list),
     or the requested data converted to a list (use
     numpy.asarray to convert back to a numpy array).
@@ -178,6 +179,8 @@ def dcserv(context, data_dict=None):
                 data = get_feature_data(data_dict, ds)
             elif query == "feature_list":
                 data = ds.features_loaded
+            elif query == "logs":
+                data = dict(ds.logs)
             elif query == "metadata":
                 data = json.loads(ds.config.tojson())
             elif query == "size":

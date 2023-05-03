@@ -1,4 +1,5 @@
-0.9.6
+0.10.0
+ - feat: support accessing the "logs" via the dcserv API
  - enh: improve performance of the dataset API
  - setup: bump dclab to 0.50.0
 0.9.5
