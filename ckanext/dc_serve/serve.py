@@ -94,8 +94,7 @@ def combined_h5(paths):
     return fd
 
 
-@functools.lru_cache(maxsize=50)
-def get_rtdc_instance(res_id, user_id):
+def get_rtdc_instance(res_id):
     """Return an instance of RTDCBase for the given resource identifier
 
     The `rid` identifier is used to resolve the uploaded .rtdc file.
@@ -106,6 +105,13 @@ def get_rtdc_instance(res_id, user_id):
     with the same identifier should be fast.
 
     `user_id` is only used for caching.
+
+    This whole process takes approximately 20ms:
+
+    Per Hit  % Time  Line Contents
+    1.8      0.0   path_list = ["calibration_beads_condensed.rtdc", path_name]
+    11915.4  57.4  h5io = combined_h5(path_list)
+    8851.6   42.6  return dclab.rtdc_dataset.fmt_hdf5.RTDC_HDF5(h5io)
     """
     path = get_resource_path(res_id)
     path_condensed = path.with_name(path.name + "_condensed.rtdc")
@@ -159,7 +165,7 @@ def dcserv(context, data_dict=None):
         path = get_resource_path(res_id)
         data = path.exists()
     else:
-        with get_rtdc_instance(res_id, user_id=context.get("user")) as ds:
+        with get_rtdc_instance(res_id) as ds:
             if query == "feature":
                 data = get_feature_data(data_dict, ds)
             elif query == "feature_list":
