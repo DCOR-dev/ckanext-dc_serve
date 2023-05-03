@@ -129,17 +129,20 @@ def get_rtdc_instance(res_id):
 def dcserv(context, data_dict=None):
     """Serve DC data as json via the CKAN API
 
-    Required parameters are 'id' (resource id) and
-    'query' ('feature', 'feature_list', 'metadata', 'size',
-    'trace', 'trace_list', 'valid').
-
-    In case 'query=feature', the parameter 'feature' must
-    be set to a valid feature name (e.g. 'feature=deform') and,
-    for non-scalar features only, 'event' (event index within
-    the dataset) must be set (e.g. 'event=47').
-    In case 'query=trace', the 'trace' and 'event' must be set.
-    In case 'query=valid', returns True if the resource exists
-    and is a valid RT-DC dataset.
+    Required key in `data_doct` are 'id' (resource id) and
+    'query'. Query may be one of the following:
+     - 'feature', in which case the 'feature' parameter must be set
+       set to a valid feature name (e.g. `query=feature&feature=deform`).
+       Returns feature data. If the feature is not a scalar feature,
+       then 'event' (index) must also be given
+       (e.g. `query=feature&feature=image&event=42`. In case of
+       'feature=trace', then in addition to the 'event' key, the
+       'trace' key (e.g. 'trace=fl1_raw') must also be set.
+     - 'feature_list': a list of available features
+     - 'metadata': the metadata configuration dictionary
+     - 'size': the number of events in the dataset
+     - 'trace_list': list of available traces
+     - 'valid': whether the corresponding .rtdc file is accessible.
 
     The "result" value will either be a dictionary
     resembling RTDCBase.config (query=metadata),
