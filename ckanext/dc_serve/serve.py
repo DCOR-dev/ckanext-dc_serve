@@ -142,6 +142,7 @@ def dcserv(context, data_dict=None):
      - 'logs': dictionary of logs
      - 'metadata': the metadata configuration dictionary
      - 'size': the number of events in the dataset
+     - 'tables': dictionary of tables
      - 'trace_list': list of available traces
      - 'valid': whether the corresponding .rtdc file is accessible.
 
@@ -185,6 +186,11 @@ def dcserv(context, data_dict=None):
                 data = json.loads(ds.config.tojson())
             elif query == "size":
                 data = len(ds)
+            elif query == "tables":
+                data = {}
+                for tab in ds.tables:
+                    data[tab] = (ds.tables.dtype.names,
+                                 ds.tables[tab].tolist())
             elif query == "trace":
                 warnings.warn("A dc_serve client is using the 'trace' query!",
                               DeprecationWarning)
