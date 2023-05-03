@@ -9,7 +9,7 @@ to access this API. Shape-Out 2 offers a GUI via *File - Load DCOR data*.
 
 This plugin implements:
 
-- The DCOR API for accessing DC datasets online.
+- The DCOR API for accessing DC datasets online (dcserv).
 - A background job that generates a condensed dataset after a resource
   has been created.
 - A route that makes the condensed dataset available via
