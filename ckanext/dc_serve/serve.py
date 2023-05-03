@@ -1,6 +1,7 @@
 import functools
 import io
 import json
+import pathlib
 import warnings
 
 import ckan.logic as logic
@@ -62,6 +63,7 @@ def combined_h5(paths):
     fd = io.BytesIO()
     with h5py.File(fd, "w", libver="latest") as hv:
         for ii, pp in enumerate(paths):
+            pp = pathlib.Path(pp).resolve()
             with h5py.File(pp, libver="latest") as h5:
                 # Check for external links
                 has_el, path_el = check_external_links(h5)
@@ -82,12 +84,13 @@ def combined_h5(paths):
                     # not events) only once.
                     for group in h5:
                         if group != "events":
-                            hv[group] = h5py.ExternalLink(pp, group)
-                # Write features
+                            hv[group] = h5py.ExternalLink(str(pp), group)
+                # Append features
                 hve = hv.require_group("events")
                 for feat in h5["events"]:
                     if feat not in hve:
-                        hve[feat] = h5py.ExternalLink(pp, f"/events/{feat}")
+                        hve[feat] = h5py.ExternalLink(str(pp),
+                                                      f"/events/{feat}")
     return fd
 
 

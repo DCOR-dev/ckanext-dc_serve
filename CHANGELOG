@@ -1,5 +1,6 @@
 0.9.6
  - enh: improve performance of the dataset API
+ - setup: bump dclab to 0.50.0
 0.9.5
  - fix: support dclab 0.49.1 (condense has new kwarg)
  - ref: cleanup
