@@ -114,8 +114,13 @@ def get_rtdc_instance(res_id):
     8851.6   42.6  return dclab.rtdc_dataset.fmt_hdf5.RTDC_HDF5(h5io)
     """
     path = get_resource_path(res_id)
+    paths = [path]
+
     path_condensed = path.with_name(path.name + "_condensed.rtdc")
-    h5io = combined_h5([path_condensed, path])
+    if path_condensed.exists():
+        paths.append(path_condensed)
+
+    h5io = combined_h5(paths)
     return dclab.rtdc_dataset.fmt_hdf5.RTDC_HDF5(h5io)
 
 
