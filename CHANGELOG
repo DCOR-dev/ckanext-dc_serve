@@ -1,5 +1,6 @@
 0.11.1
  - ref: use logic for creating combined HDF5 file from dclab
+ - setup: bump dclab from 0.50.0 to 0.52.0
 0.11.0
  - feat: support accessing the "tables" via the dcserv API
 0.10.0
