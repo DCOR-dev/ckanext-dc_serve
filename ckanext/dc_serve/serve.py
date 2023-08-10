@@ -9,89 +9,9 @@ import ckan.model as model
 import ckan.plugins.toolkit as toolkit
 
 import dclab
+from dclab.rtdc_dataset import linker as dclab_linker
 from dcor_shared import DC_MIME_TYPES, get_resource_path
-import h5py
 import numpy as np
-
-
-class ExternalLinksForbiddenError(BaseException):
-    """Raised when a dataset contains external links
-
-    External links pose a security thread, because they could be
-    used to access data that is not supposed to be accessed. On
-    the file system level, we don't have CKAN authentication.
-    """
-    pass
-
-
-def check_external_links(h5):
-    """Check recursively, whether an h5py object contains external links
-
-    Returns a tuple of either
-    - `(True, path_el)` if the object contains an external link
-    - `(False, None)` if this is not the case
-    """
-    for obj in h5:
-        if isinstance(obj, h5py.ExternalLink):
-            # The group or the dataset is an external link
-            return True, obj.path
-        elif isinstance(obj, h5py.Group):
-            # Check all the objects within this group
-            has_el, path_el = check_external_links(obj)
-            if has_el:
-                return True, path_el
-    else:
-        return False, None
-
-
-def combined_h5(paths):
-    """Create an in-memory file that combines raw and condensed .rtdc files
-
-    Parameters
-    ----------
-    paths: list of str or pathlib.Path
-        Paths of the input .rtdc files. The first input file is always
-        used as a source for the metadata. The other files only complement
-        the features.
-
-    Notes
-    -----
-    This method checks for the existence of HDF5 external links. These
-    should not be used here, because they could potentially lead to
-    data leakage.
-    """
-    fd = io.BytesIO()
-    with h5py.File(fd, "w", libver="latest") as hv:
-        for ii, pp in enumerate(paths):
-            pp = pathlib.Path(pp).resolve()
-            with h5py.File(pp, libver="latest") as h5:
-                # Check for external links
-                has_el, path_el = check_external_links(h5)
-                if has_el:
-                    raise ExternalLinksForbiddenError(
-                        f"Dataset {pp} contains external links, but these "
-                        f"are not permitted for safety reasons ({path_el})!")
-                if ii == 0:
-                    # Only write attributes once.
-                    # Interestingly, writing the attributes takes
-                    # the most time. Maybe there is some shortcut
-                    # than can be taken (since e.g. we know we don't have to
-                    # check for existing attributes).
-                    # https://github.com/h5py/h5py/blob/master/
-                    # h5py/_hl/attrs.py
-                    hv.attrs.update(h5.attrs)
-                    # Also, write logs/tables/... (anything that is
-                    # not events) only once.
-                    for group in h5:
-                        if group != "events":
-                            hv[group] = h5py.ExternalLink(str(pp), group)
-                # Append features
-                hve = hv.require_group("events")
-                for feat in h5["events"]:
-                    if feat not in hve:
-                        hve[feat] = h5py.ExternalLink(str(pp),
-                                                      f"/events/{feat}")
-    return fd
 
 
 def get_rtdc_instance(res_id):
@@ -120,7 +40,7 @@ def get_rtdc_instance(res_id):
     if path_condensed.exists():
         paths.append(path_condensed)
 
-    h5io = combined_h5(paths)
+    h5io = dclab_linker.combine_h5files(paths, external="raise")
     return dclab.rtdc_dataset.fmt_hdf5.RTDC_HDF5(h5io)
 
 
@@ -142,7 +62,8 @@ def dcserv(context, data_dict=None):
      - 'logs': dictionary of logs
      - 'metadata': the metadata configuration dictionary
      - 'size': the number of events in the dataset
-     - 'tables': dictionary of tables
+     - 'tables': dictionary of tables (each entry consists of a tuple
+        with the column names and the array data)
      - 'trace_list': list of available traces
      - 'valid': whether the corresponding .rtdc file is accessible.
 
