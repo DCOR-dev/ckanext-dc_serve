@@ -1,7 +1,5 @@
 import functools
-import io
 import json
-import pathlib
 import warnings
 
 import ckan.logic as logic
