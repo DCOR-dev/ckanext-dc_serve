@@ -2,6 +2,7 @@ from os.path import dirname, realpath, exists
 from setuptools import setup, find_packages
 from codecs import open  # To use a consistent encoding
 import sys
+import warnings
 
 author = "Paul Müller"
 authors = [author]
@@ -12,6 +13,19 @@ year = "2020"
 sys.path.insert(0, realpath(dirname(__file__))+"/" + "/".join(name.split("-")))
 from _version import version  # noqa: E402
 
+try:
+    # Make sure this fails for old CKAN versions
+    import ckan
+    ckan_version = [int(v) for v in ckan.__version__.split(".")]
+    if ckan_version < [2, 10, 1]:
+        raise ValueError(
+            f"Your CKAN version {ckan_version} is not supported! If you "
+            f"are still on CKAN 2.9.5, then the following package versions "
+            f"are supported:"
+            f"\n ckanext-dc_serve<=0.11.1"
+            )
+except ImportError:
+    warnings.warn("CKAN not installed, supported version check skipped.")
 
 setup(
     name=name,
@@ -29,7 +43,7 @@ setup(
     install_requires=[
         # the "ckan" dependency is implied
         "dclab>=0.52.0",
-        "dcor_shared>=0.2.0",
+        "dcor_shared>0.3.1",
     ],
     include_package_data=True,
     # To provide executable scripts, use entry points in preference to the
