@@ -1,4 +1,3 @@
-import mock
 import json
 import pathlib
 import uuid
