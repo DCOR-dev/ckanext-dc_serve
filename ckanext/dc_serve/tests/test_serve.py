@@ -1,3 +1,4 @@
+import mock
 import json
 import pathlib
 import uuid
@@ -335,6 +336,8 @@ def test_api_dcserv_feature_list(app, create_with_upload):
     assert "deform" in jres["result"]
 
 
+@pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
+@pytest.mark.usefixtures('clean_db', 'with_plugins', 'with_request_context')
 def test_api_dcserv_feature_trace(app, create_with_upload):
     user = factories.User()
     owner_org = factories.Organization(users=[{
@@ -373,6 +376,8 @@ def test_api_dcserv_feature_trace(app, create_with_upload):
         assert np.allclose(ds["trace"]["fl1_raw"][1], jres["result"])
 
 
+@pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
+@pytest.mark.usefixtures('clean_db', 'with_plugins', 'with_request_context')
 def test_api_dcserv_logs(app, create_with_upload):
     user = factories.User()
     owner_org = factories.Organization(users=[{
@@ -407,6 +412,8 @@ def test_api_dcserv_logs(app, create_with_upload):
     assert jres["result"]["hans"][0] == "peter"
 
 
+@pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
+@pytest.mark.usefixtures('clean_db', 'with_plugins', 'with_request_context')
 def test_api_dcserv_metadata(app, create_with_upload):
     user = factories.User()
     owner_org = factories.Organization(users=[{
@@ -441,6 +448,8 @@ def test_api_dcserv_metadata(app, create_with_upload):
     assert jres["result"]["setup"]["channel width"] == 20
 
 
+@pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
+@pytest.mark.usefixtures('clean_db', 'with_plugins', 'with_request_context')
 def test_api_dcserv_size(app, create_with_upload):
     user = factories.User()
     owner_org = factories.Organization(users=[{
@@ -476,6 +485,8 @@ def test_api_dcserv_size(app, create_with_upload):
         assert jres["result"] == len(ds)
 
 
+@pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve dcor_depot')
+@pytest.mark.usefixtures('clean_db', 'with_plugins', 'with_request_context')
 def test_api_dcserv_tables(app, create_with_upload):
     user = factories.User()
     owner_org = factories.Organization(users=[{
@@ -488,7 +499,7 @@ def test_api_dcserv_tables(app, create_with_upload):
     # create a dataset
     dataset, res = make_dataset(create_context, owner_org,
                                 create_with_upload=create_with_upload,
-                                test_data_file="cytoshot_blood.rtdc",
+                                test_file_name="cytoshot_blood.rtdc",
                                 activate=True)
     # taken from ckanext/example_iapitoken/tests/test_plugin.py
     data = helpers.call_action(
@@ -513,6 +524,8 @@ def test_api_dcserv_tables(app, create_with_upload):
     assert "brightness" in names
 
 
+@pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
+@pytest.mark.usefixtures('clean_db', 'with_plugins', 'with_request_context')
 def test_api_dcserv_trace_list(app, create_with_upload):
     user = factories.User()
     owner_org = factories.Organization(users=[{
@@ -549,6 +562,8 @@ def test_api_dcserv_trace_list(app, create_with_upload):
             assert key in jres["result"]
 
 
+@pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
+@pytest.mark.usefixtures('clean_db', 'with_plugins', 'with_request_context')
 def test_api_dcserv_valid(app, create_with_upload):
     user = factories.User()
     owner_org = factories.Organization(users=[{

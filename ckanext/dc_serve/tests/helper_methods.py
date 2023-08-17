@@ -7,6 +7,7 @@ data_path = pathlib.Path(__file__).parent / "data"
 
 
 def make_dataset(create_context, owner_org, create_with_upload=None,
+                 test_file_name="calibration_beads_47.rtdc",
                  activate=False, **kwargs):
     if "title" not in kwargs:
         kwargs["title"] = "test-dataset"
@@ -24,7 +25,8 @@ def make_dataset(create_context, owner_org, create_with_upload=None,
                              )
 
     if create_with_upload is not None:
-        rs = make_resource(create_with_upload, create_context, ds["id"])
+        rs = make_resource(create_with_upload, create_context, ds["id"],
+                           test_file_name=test_file_name)
 
     if activate:
         helpers.call_action("package_patch", create_context,
@@ -39,11 +41,12 @@ def make_dataset(create_context, owner_org, create_with_upload=None,
         return dataset
 
 
-def make_resource(create_with_upload, create_context, dataset_id):
-    content = (data_path / "calibration_beads_47.rtdc").read_bytes()
+def make_resource(create_with_upload, create_context, dataset_id,
+                  test_file_name="calibration_beads_47.rtdc"):
+    content = (data_path / test_file_name).read_bytes()
     rs = create_with_upload(
         data=content,
-        filename='test.rtdc',
+        filename=test_file_name,
         context=create_context,
         package_id=dataset_id,
         url="upload",

@@ -55,7 +55,8 @@ def test_create_condensed_dataset_job(enqueue_job_mock, create_with_upload,
     }])
     # Note: `call_action` bypasses authorization!
     # create 1st dataset
-    create_context = {'ignore_auth': False, 'user': user['name'],
+    create_context = {'ignore_auth': False,
+                      'user': user['name'],
                       'api_version': 3}
     dataset = make_dataset(create_context, owner_org, with_resource=False,
                            activate=False)

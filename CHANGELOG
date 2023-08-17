@@ -1,5 +1,6 @@
 0.12.0
  - ref: migration to CKAN 2.10
+ - fix: serving tables via API did not work
 0.11.1
  - ref: use logic for creating combined HDF5 file from dclab
  - setup: bump dclab from 0.50.0 to 0.52.0
