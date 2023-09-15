@@ -17,7 +17,7 @@ data_path = pathlib.Path(__file__).parent / "data"
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db', 'with_plugins', 'with_request_context')
+@pytest.mark.usefixtures('clean_db', 'with_request_context')
 def test_auth_forbidden(app, create_with_upload):
     user = factories.User()
     user2 = factories.User()
@@ -54,7 +54,7 @@ def test_auth_forbidden(app, create_with_upload):
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db', 'with_plugins', 'with_request_context')
+@pytest.mark.usefixtures('clean_db', 'with_request_context')
 def test_api_dcserv_error(app, create_with_upload):
     user = factories.User()
     owner_org = factories.Organization(users=[{
@@ -129,7 +129,7 @@ def test_api_dcserv_error(app, create_with_upload):
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db', 'with_plugins', 'with_request_context')
+@pytest.mark.usefixtures('clean_db', 'with_request_context')
 def test_api_dcserv_error_feature(app, create_with_upload):
     user = factories.User()
     owner_org = factories.Organization(users=[{
@@ -208,7 +208,7 @@ def test_api_dcserv_error_feature(app, create_with_upload):
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db', 'with_plugins', 'with_request_context')
+@pytest.mark.usefixtures('clean_db', 'with_request_context')
 def test_api_dcserv_error_feature_trace(app, create_with_upload):
     user = factories.User()
     owner_org = factories.Organization(users=[{
@@ -262,7 +262,7 @@ def test_api_dcserv_error_feature_trace(app, create_with_upload):
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db', 'with_plugins', 'with_request_context')
+@pytest.mark.usefixtures('clean_db', 'with_request_context')
 def test_api_dcserv_feature(app, create_with_upload):
     user = factories.User()
     owner_org = factories.Organization(users=[{
@@ -300,7 +300,7 @@ def test_api_dcserv_feature(app, create_with_upload):
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db', 'with_plugins', 'with_request_context')
+@pytest.mark.usefixtures('clean_db', 'with_request_context')
 def test_api_dcserv_feature_list(app, create_with_upload):
     user = factories.User()
     owner_org = factories.Organization(users=[{
@@ -336,7 +336,7 @@ def test_api_dcserv_feature_list(app, create_with_upload):
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db', 'with_plugins', 'with_request_context')
+@pytest.mark.usefixtures('clean_db', 'with_request_context')
 def test_api_dcserv_feature_trace(app, create_with_upload):
     user = factories.User()
     owner_org = factories.Organization(users=[{
@@ -376,7 +376,7 @@ def test_api_dcserv_feature_trace(app, create_with_upload):
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db', 'with_plugins', 'with_request_context')
+@pytest.mark.usefixtures('clean_db', 'with_request_context')
 def test_api_dcserv_logs(app, create_with_upload):
     user = factories.User()
     owner_org = factories.Organization(users=[{
@@ -412,7 +412,7 @@ def test_api_dcserv_logs(app, create_with_upload):
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db', 'with_plugins', 'with_request_context')
+@pytest.mark.usefixtures('clean_db', 'with_request_context')
 def test_api_dcserv_metadata(app, create_with_upload):
     user = factories.User()
     owner_org = factories.Organization(users=[{
@@ -448,7 +448,7 @@ def test_api_dcserv_metadata(app, create_with_upload):
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db', 'with_plugins', 'with_request_context')
+@pytest.mark.usefixtures('clean_db', 'with_request_context')
 def test_api_dcserv_size(app, create_with_upload):
     user = factories.User()
     owner_org = factories.Organization(users=[{
@@ -484,8 +484,8 @@ def test_api_dcserv_size(app, create_with_upload):
         assert jres["result"] == len(ds)
 
 
-@pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve dcor_depot')
-@pytest.mark.usefixtures('clean_db', 'with_plugins', 'with_request_context')
+@pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
+@pytest.mark.usefixtures('clean_db', 'with_request_context')
 def test_api_dcserv_tables(app, create_with_upload):
     user = factories.User()
     owner_org = factories.Organization(users=[{
@@ -524,7 +524,7 @@ def test_api_dcserv_tables(app, create_with_upload):
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db', 'with_plugins', 'with_request_context')
+@pytest.mark.usefixtures('clean_db', 'with_request_context')
 def test_api_dcserv_trace_list(app, create_with_upload):
     user = factories.User()
     owner_org = factories.Organization(users=[{
@@ -562,7 +562,7 @@ def test_api_dcserv_trace_list(app, create_with_upload):
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db', 'with_plugins', 'with_request_context')
+@pytest.mark.usefixtures('clean_db', 'with_request_context')
 def test_api_dcserv_valid(app, create_with_upload):
     user = factories.User()
     owner_org = factories.Organization(users=[{

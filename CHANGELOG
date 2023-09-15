@@ -1,3 +1,5 @@
+0.12.2
+ - tests: cleanup test functions not passing
 0.12.1
  - make bg jobs work with dcor_schemas 0.18.2
 0.12.0
