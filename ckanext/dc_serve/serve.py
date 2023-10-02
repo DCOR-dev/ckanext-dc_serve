@@ -50,10 +50,10 @@ def dcserv(context, data_dict=None):
     Required key in `data_doct` are 'id' (resource id) and
     'query'. Query may be one of the following:
      - 'feature', in which case the 'feature' parameter must be set
-       set to a valid feature name (e.g. `query=feature&feature=deform`).
+       to a valid feature name (e.g. `query=feature&feature=deform`).
        Returns feature data. If the feature is not a scalar feature,
        then 'event' (index) must also be given
-       (e.g. `query=feature&feature=image&event=42`. In case of
+       (e.g. `query=feature&feature=image&event=42`). In case of
        'feature=trace', then in addition to the 'event' key, the
        'trace' key (e.g. 'trace=fl1_raw') must also be set.
      - 'feature_list': a list of available features

@@ -63,7 +63,7 @@ def test_route_redircet_condensed_to_s3_private(
         f"/dataset/{did}/resource/{rid}/condensed.rtdc",
         status=404
         )
-    assert len(resp0.history[0]) == 0
+    assert len(resp0.history) == 0
 
     # Try again with token
     data = helpers.call_action(
@@ -87,7 +87,7 @@ def test_route_redircet_condensed_to_s3_private(
     assert redirect.status_code == 302
     redirect_stem = (f"{endpoint}/{bucket_name}/condensed/"
                      f"{rid[:3]}/{rid[3:6]}/{rid[6:]}")
-    #
+    # Since we have a presigned URL, it is longer than the normal S3 URL.
     assert redirect.location.startswith(redirect_stem)
     assert len(redirect.location) > len(redirect_stem)
 
