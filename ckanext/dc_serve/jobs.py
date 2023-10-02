@@ -1,10 +1,17 @@
 import multiprocessing
 
+import ckan.plugins.toolkit as toolkit
 from dclab.cli import condense
-from dcor_shared import DC_MIME_TYPES, wait_for_resource, get_resource_path
+from dcor_shared import (
+    DC_MIME_TYPES, s3, sha256sum, get_ckan_config_option, get_resource_path,
+    wait_for_resource)
 
 
 from .res_file_lock import CKANResourceFileLock
+
+
+def admin_context():
+    return {'ignore_auth': True, 'user': 'default'}
 
 
 def generate_condensed_resource_job(resource, override=False):
@@ -36,3 +43,25 @@ def generate_condensed_resource_job(resource, override=False):
                     p.join()
                     return True
     return False
+
+
+def migrate_condensed_to_s3_job(resource):
+    """Migrate a condensed resource to the S3 object store"""
+    path = get_resource_path(resource["id"])
+    path_cond = path.with_name(path.name + "_condensed.rtdc")
+    ds_dict = toolkit.get_action('package_show')(
+        admin_context(),
+        {'id': resource["package_id"]})
+    # Perform the upload
+    bucket_name = get_ckan_config_option(
+        "dcor_object_store.bucket_name").format(
+        organization_id=ds_dict["organization"]["id"])
+    rid = resource["id"]
+    sha256 = sha256sum(path_cond)
+    s3.upload_file(
+        bucket_name=bucket_name,
+        object_name=f"condensed/{rid[:3]}/{rid[3:6]}/{rid[6:]}",
+        path=path_cond,
+        sha256=sha256,
+        private=ds_dict["private"])
+    # TODO: delete the local resource after successful upload?

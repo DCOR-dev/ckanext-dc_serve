@@ -53,3 +53,27 @@ def make_resource(create_with_upload, create_context, dataset_id,
     )
     resource = helpers.call_action("resource_show", id=rs["id"])
     return resource
+
+
+def synchronous_enqueue_job(job_func, args=None, kwargs=None, title=None,
+                            queue=None, rq_kwargs=None):
+    """
+    Synchronous mock for ``ckan.plugins.toolkit.enqueue_job``.
+
+
+    Due to the asynchronous nature of background jobs, code that uses them
+    needs to be handled specially when writing tests.
+
+    A common approach is to use the mock package to replace the
+    ckan.plugins.toolkit.enqueue_job function with a mock that executes jobs
+    synchronously instead of asynchronously
+
+    Also, since we are running the tests as root on a ckan instance that
+    is run by www-data, modifying files on disk in background jobs
+    (which were started by supervisor as www-data) does not work.
+    """
+    if rq_kwargs is None:
+        rq_kwargs = {}
+    args = args or []
+    kwargs = kwargs or {}
+    job_func(*args, **kwargs)

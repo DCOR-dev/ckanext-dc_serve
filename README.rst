@@ -12,8 +12,11 @@ This plugin implements:
 - The DCOR API for accessing DC datasets online (dcserv).
 - A background job that generates a condensed dataset after a resource
   has been created.
+- A background job that uploads the condensed dataset to the S3 object
+  store.
 - A route that makes the condensed dataset available via
   "/dataset/{id}/resource/{resource_id}/condensed.rtdc"
+  (S3 object store data is made available via a redirect)
 - Extends the template to show a condensed resource download button
 
 - CLI:
@@ -39,14 +42,7 @@ Add this extension to the plugins and defaul_views in ckan.ini:
 
 Testing
 -------
-If CKAN/DCOR is installed and setup for testing, this extension can
-be tested with pytest:
-
-::
-
-    pytest ckanext
-
-Testing can also be done via vagrant in a virtualmachine using the
+Testing is done via vagrant in a virtualmachine using the
 `dcor-test <https://app.vagrantup.com/paulmueller/boxes/dcor-test/>` image.
 Make sure that `vagrant` and `virtualbox` are installed and run the
 following commands in the root of this repository:

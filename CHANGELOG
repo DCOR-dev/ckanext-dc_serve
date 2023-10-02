@@ -1,3 +1,6 @@
+0.13.0
+ - feat: upload condensed dataset to S3 in background job
+ - feat: redirect route for condensed file to S3
 0.12.2
  - tests: cleanup test functions not passing
 0.12.1
