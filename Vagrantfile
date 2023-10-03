@@ -24,6 +24,14 @@ Vagrant.configure("2") do |config|
   # accessing "localhost:8080" will access port 80 on the guest machine.
   # NOTE: This will enable public access to the opened port
   # config.vm.network "forwarded_port", guest: 80, host: 8080
+  # solr: http://localhost:8983/solr/
+  # config.vm.network "forwarded_port", guest: 8983, host: 8983
+  # CKAN
+  # config.vm.network "forwarded_port", guest: 80, host: 8888
+  # MinIO console
+  # config.vm.network "forwarded_port", guest: 9001, host: 9001
+  # MinIO S3 object store
+  # config.vm.network "forwarded_port", guest: 9000, host: 9000
 
   # Create a forwarded port mapping which allows access to a specific port
   # within the machine from a port on the host machine and only allow access

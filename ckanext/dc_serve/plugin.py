@@ -8,7 +8,7 @@ from rq.job import Job
 from .cli import get_commands
 from . import helpers as dcor_helpers
 from .jobs import generate_condensed_resource_job, migrate_condensed_to_s3_job
-from .route_funcs import dccondense
+from .route_funcs import dccondense, dcresource
 from .serve import dcserv
 
 
@@ -32,9 +32,12 @@ class DCServePlugin(plugins.SingletonPlugin):
 
         # Add plugin url rules to Blueprint object
         rules = [
-            ('/dataset/<uuid:id>/resource/<uuid:resource_id>/condensed.rtdc',
+            ('/dataset/<uuid:ds_id>/resource/<uuid:res_id>/condensed.rtdc',
              'dccondense',
              dccondense),
+            ('/dataset/<uuid:ds_id>/resource/<uuid:res_id>/download/<name>',
+             'dcresource',
+             dcresource),
         ]
         for rule in rules:
             blueprint.add_url_rule(*rule)

@@ -17,6 +17,9 @@ This plugin implements:
 - A route that makes the condensed dataset available via
   "/dataset/{id}/resource/{resource_id}/condensed.rtdc"
   (S3 object store data is made available via a redirect)
+- A route overriding the default route for downloading a resource via
+  "/dataset/{id}/resource/{resource_id}/download/resource_name"
+  (S3 object store data is made available via a redirect)
 - Extends the template to show a condensed resource download button
 
 - CLI:
