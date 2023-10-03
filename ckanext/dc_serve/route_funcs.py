@@ -32,6 +32,9 @@ def dccondense(ds_id, res_id):
         # to unprivileged users.
         return toolkit.abort(404, toolkit._('Resource not found'))
 
+    res_stem, suffix = res_dict["name"].rsplit(".", 1)
+    cond_name = f"{res_stem}_condensed{suffix}"
+
     if s3 is not None and res_dict.get('s3_available'):
         # check if the corresponding S3 object exists
         bucket_name = get_ckan_config_option(
@@ -45,8 +48,6 @@ def dccondense(ds_id, res_id):
         except botocore.exceptions.ClientError:
             pass
         else:
-            res_stem, suffix = res_dict["name"].rsplit(".", 1)
-            cond_name = f"{res_stem}_condensed{suffix}"
             # We have an S3 object that we can redirect to. We are making use
             # of presigned URLs to be able to specify a filename for download
             # (otherwise, users that download via the web interface will
@@ -72,7 +73,8 @@ def dccondense(ds_id, res_id):
         if not con_file.exists():
             return toolkit.abort(404,
                                  toolkit._('Condensed resource not found'))
-        return flask.send_from_directory(con_file.parent, con_file.name)
+        return flask.send_from_directory(con_file.parent, con_file.name,
+                                         attachment_filename=cond_name)
 
     return toolkit.abort(404, toolkit._('No condensed download available'))
 
@@ -140,6 +142,7 @@ def dcresource(ds_id, res_id, name):
         filepath = pathlib.Path(upload.get_path(res_dict['id']))
         if not filepath.exists():
             return toolkit.abort(404, toolkit._('Resource not found'))
-        return flask.send_from_directory(filepath.parent, filepath.name)
+        return flask.send_from_directory(filepath.parent, filepath.name,
+                                         attachment_filename=res_dict["name"])
 
     return toolkit.redirect_to(res_dict["url"])
