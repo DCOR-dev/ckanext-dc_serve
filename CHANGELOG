@@ -1,3 +1,5 @@
+0.13.1
+ - fix: correct suffix in name when downloading condensed files
 0.13.0
  - feat: upload condensed dataset to S3 in background job
  - feat: redirect route for condensed file to S3

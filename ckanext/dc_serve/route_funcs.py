@@ -33,7 +33,7 @@ def dccondense(ds_id, res_id):
         return toolkit.abort(404, toolkit._('Resource not found'))
 
     res_stem, suffix = res_dict["name"].rsplit(".", 1)
-    cond_name = f"{res_stem}_condensed{suffix}"
+    cond_name = f"{res_stem}_condensed.{suffix}"
 
     if s3 is not None and res_dict.get('s3_available'):
         # check if the corresponding S3 object exists
