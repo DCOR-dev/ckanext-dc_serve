@@ -1,5 +1,5 @@
 import functools
-import json
+import io
 import warnings
 
 import ckan.logic as logic
@@ -8,11 +8,31 @@ import ckan.plugins.toolkit as toolkit
 
 import dclab
 from dclab.rtdc_dataset import linker as dclab_linker
-from dcor_shared import DC_MIME_TYPES, get_resource_path
+from dcor_shared import (
+    DC_MIME_TYPES, get_resource_path, get_ckan_config_option, s3)
+import h5py
 import numpy as np
 
 
-def get_rtdc_instance(res_id):
+def get_rtdc_instance(res_id, force_s3=False):
+    """Return instance of RTDCBase
+
+    See Also
+    --------
+    get_rtdc_instance_local: get file linked to data on block storage
+    get_rtdc_instance_local: get file with basins from S3
+    """
+    # First check whether we have a local file. Local files should be
+    # faster to access, so we favor this scenario.
+    path = get_resource_path(res_id)
+    if path.exists() and not force_s3:
+        return get_rtdc_instance_local(res_id)
+    else:
+        return get_rtdc_instance_s3(res_id)
+
+
+@functools.lru_cache(maxsize=100)
+def get_rtdc_instance_local(res_id):
     """Return an instance of RTDCBase for the given resource identifier
 
     The `rid` identifier is used to resolve the uploaded .rtdc file.
@@ -21,8 +41,6 @@ def get_rtdc_instance(res_id):
 
     This method is cached using an `lru_cache`, so consecutive calls
     with the same identifier should be fast.
-
-    `user_id` is only used for caching.
 
     This whole process takes approximately 20ms:
 
@@ -40,6 +58,58 @@ def get_rtdc_instance(res_id):
 
     h5io = dclab_linker.combine_h5files(paths, external="raise")
     return dclab.rtdc_dataset.fmt_hdf5.RTDC_HDF5(h5io)
+
+
+@functools.lru_cache(maxsize=100)
+def get_rtdc_instance_s3(res_id):
+    """Same as `get_rtdc_instance_local`, except that data are taken from S3
+
+    The `rid` identifier is used to identify the S3 object store key.
+
+    This method does not create an HDF5 file that contains links to
+    datasets on S3, but instead uses basins that were introduced in
+    dclab 0.53.0.
+
+    This method is cached using an `lru_cache`, so consecutive calls
+    with the same identifier should be fast.
+    """
+    rid = res_id
+    res_dict = toolkit.call_action("resource_show", id=rid)
+    ds_dict = toolkit.call_action("package_show", id=res_dict["package_id"])
+    endpoint = get_ckan_config_option("dcor_object_store.endpoint_url")
+    bucket_name = get_ckan_config_option(
+        "dcor_object_store.bucket_name").format(
+        organization_id=ds_dict["organization"]["id"])
+    object_names = [f"resource/{rid[:3]}/{rid[3:6]}/{rid[6:]}",
+                    f"condensed/{rid[:3]}/{rid[3:6]}/{rid[6:]}"]
+
+    # build metadata dictionary from resource metadata
+    meta = {}
+    for item in res_dict:
+        if item.startswith("dc:"):
+            _, sec, key = item.split(":", 2)
+            meta.setdefault(sec, {})
+            meta[sec][key] = res_dict[item]
+
+    basin_paths = []
+    for on in object_names:
+        if ds_dict["private"]:
+            bp = s3.create_presigned_url(bucket_name=bucket_name,
+                                         object_name=on)
+        else:
+            bp = f"{endpoint}/{bucket_name}/{on}"
+        basin_paths.append(bp)
+
+    fd = io.BytesIO()
+    with h5py.File(fd, "w", libver="latest") as hw:
+        hw.store_metadata(meta)
+        for on, bp in zip(object_names, basin_paths):
+            hw.store_basin(name=on.split("/")[0],
+                           format="s3",
+                           type="remote",
+                           basin_locs=[bp],
+                           )
+    return dclab.rtdc_dataset.fmt_hdf5.RTDC_HDF5(fd)
 
 
 # Required so that GET requests work
@@ -62,8 +132,13 @@ def dcserv(context, data_dict=None):
      - 'size': the number of events in the dataset
      - 'tables': dictionary of tables (each entry consists of a tuple
         with the column names and the array data)
+     - 'basins': list of basin dictionaries (upstream and S3 data)
      - 'trace_list': list of available traces
      - 'valid': whether the corresponding .rtdc file is accessible.
+     - 'version': which version of the API to use (defaults to 1);
+        If you specify '2' and the resource and condensed resources are
+        on S3, then no feature data is served via the API, only basins
+        (on S3) are specified.
 
     The "result" value will either be a dictionary
     resembling RTDCBase.config (e.g. query=metadata),
@@ -71,11 +146,17 @@ def dcserv(context, data_dict=None):
     or the requested data converted to a list (use
     numpy.asarray to convert back to a numpy array).
     """
+    if data_dict is None:
+        data_dict = {}
+    data_dict.setdefault("version", "1")
+
     # Check required parameters
     if "query" not in data_dict:
         raise logic.ValidationError("Please specify 'query' parameter!")
     if "id" not in data_dict:
         raise logic.ValidationError("Please specify 'id' parameter!")
+    if data_dict["version"] not in ["1", "2"]:
+        raise logic.ValidationError("Please specify version '1' or '2'!")
 
     # Perform all authorization checks for the resource
     logic.check_access("resource_show",
@@ -90,21 +171,35 @@ def dcserv(context, data_dict=None):
         raise logic.ValidationError(
             f"Resource ID {res_id} must be an .rtdc dataset!")
 
+    version_is_2 = data_dict["version"] == "2"
+
     if query == "valid":
         path = get_resource_path(res_id)
         data = path.exists()
     else:
-        with get_rtdc_instance(res_id) as ds:
+        with get_rtdc_instance(res_id, force_s3=version_is_2) as ds:
             if query == "feature":
-                data = get_feature_data(data_dict, ds)
+                if version_is_2:
+                    # We are forcing the usage of basins in the client.
+                    raise logic.ValidationError(
+                        "Features unavailable, use basins!")
+                else:
+                    data = get_feature_data(data_dict, ds)
             elif query == "feature_list":
-                data = ds.features_loaded
+                if version_is_2:
+                    data = []
+                else:
+                    data = ds.features_loaded
             elif query == "logs":
                 data = dict(ds.logs)
             elif query == "metadata":
-                data = json.loads(ds.config.tojson())
+                data = ds.config.as_dict(pop_filtering=True)
             elif query == "size":
                 data = len(ds)
+            elif query == "basins":
+                # Return all basins from the condensed file
+                # (the S3 basins are already in there).
+                data = ds.basins_get_dicts()
             elif query == "tables":
                 data = {}
                 for tab in ds.tables:

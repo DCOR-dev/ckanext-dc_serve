@@ -1,5 +1,5 @@
 import json
-import pathlib
+import shutil
 import uuid
 
 import ckan.model as model
@@ -10,10 +10,7 @@ import numpy as np
 
 import pytest
 
-from .helper_methods import make_dataset
-
-
-data_path = pathlib.Path(__file__).parent / "data"
+from .helper_methods import data_path, make_dataset
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
@@ -259,6 +256,59 @@ def test_api_dcserv_error_feature_trace(app, create_with_upload):
     jres = json.loads(resp.body)
     assert not jres["success"]
     assert "lease specify 'event' for non-scalar" in jres["error"]["message"]
+
+
+@pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
+@pytest.mark.usefixtures('clean_db', 'with_request_context')
+def test_api_dcserv_basin(app, create_with_upload):
+    user = factories.User()
+    owner_org = factories.Organization(users=[{
+        'name': user['id'],
+        'capacity': 'admin'
+    }])
+    # Note: `call_action` bypasses authorization!
+    create_context = {'ignore_auth': False,
+                      'user': user['name'], 'api_version': 3}
+    # create a dataset
+    path_orig = data_path / "calibration_beads_47.rtdc"
+    path_test = data_path / "calibration_beads_47_test.rtdc"
+    shutil.copy2(path_orig, path_test)
+    with dclab.RTDCWriter(path_test) as hw:
+        hw.store_basin(basin_name="example basin",
+                       basin_type="file",
+                       basin_format="hdf5",
+                       basin_locs=[path_orig],
+                       basin_descr="an example test basin",
+                       )
+
+    dataset, res = make_dataset(create_context, owner_org,
+                                create_with_upload=create_with_upload,
+                                test_file_name=path_test.name,
+                                activate=True)
+
+    # taken from ckanext/example_iapitoken/tests/test_plugin.py
+    data = helpers.call_action(
+        u"api_token_create",
+        context={u"model": model, u"user": user[u"name"]},
+        user=user[u"name"],
+        name=u"token-name",
+    )
+
+    resp = app.get(
+        "/api/3/action/dcserv",
+        params={"id": res["id"],
+                "query": "basins",
+                },
+        headers={u"authorization": data["token"]},
+        status=200
+        )
+    jres = json.loads(resp.body)
+    assert jres["success"]
+    basin = jres["result"][0]
+    assert basin["name"] == "example basin"
+    assert basin["type"] == "file"
+    assert basin["format"] == "hdf5"
+    assert basin["description"] == "an example test basin"
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
