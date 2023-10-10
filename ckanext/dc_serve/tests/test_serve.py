@@ -1,16 +1,21 @@
+import copy
 import json
+import mock
 import shutil
 import uuid
 
 import ckan.model as model
+import ckan.common
 import ckan.tests.factories as factories
 import ckan.tests.helpers as helpers
+import ckanext.dcor_schemas
 import dclab
+import h5py
 import numpy as np
 
 import pytest
 
-from .helper_methods import data_path, make_dataset
+from .helper_methods import data_path, make_dataset, synchronous_enqueue_job
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
@@ -268,7 +273,8 @@ def test_api_dcserv_basin(app, create_with_upload):
     }])
     # Note: `call_action` bypasses authorization!
     create_context = {'ignore_auth': False,
-                      'user': user['name'], 'api_version': 3}
+                      'user': user['name'],
+                      'api_version': 3}
     # create a dataset
     path_orig = data_path / "calibration_beads_47.rtdc"
     path_test = data_path / "calibration_beads_47_test.rtdc"
@@ -309,6 +315,143 @@ def test_api_dcserv_basin(app, create_with_upload):
     assert basin["type"] == "file"
     assert basin["format"] == "hdf5"
     assert basin["description"] == "an example test basin"
+
+
+@pytest.mark.ckan_config('ckan.plugins', 'dcor_depot dcor_schemas dc_serve')
+@pytest.mark.usefixtures('clean_db', 'with_request_context')
+@mock.patch('ckan.plugins.toolkit.enqueue_job',
+            side_effect=synchronous_enqueue_job)
+def test_api_dcserv_basin_v2(enqueue_job_mock, app, create_with_upload,
+                             monkeypatch, ckan_config, tmpdir):
+    monkeypatch.setitem(ckan_config, 'ckan.storage_path', str(tmpdir))
+    monkeypatch.setattr(ckan.lib.uploader,
+                        'get_storage_path',
+                        lambda: str(tmpdir))
+    monkeypatch.setattr(
+        ckanext.dcor_schemas.plugin,
+        'DISABLE_AFTER_DATASET_CREATE_FOR_CONCURRENT_JOB_TESTS',
+        True)
+
+    user = factories.User()
+    owner_org = factories.Organization(users=[{
+        'name': user['id'],
+        'capacity': 'admin'
+    }])
+    user_obj = ckan.model.User.by_name(user["name"])
+    monkeypatch.setattr(ckan.common,
+                        'current_user',
+                        user_obj)
+    # Note: `call_action` bypasses authorization!
+    create_context = {'ignore_auth': False,
+                      'user': user['name'],
+                      'api_version': 3}
+
+    dataset, res = make_dataset(copy.deepcopy(create_context), owner_org,
+                                create_with_upload=create_with_upload,
+                                activate=True)
+
+    s3_url = res["s3_url"]
+
+    # create a dataset
+    path_orig = data_path / "calibration_beads_47.rtdc"
+    path_test = data_path / "calibration_beads_47_test.rtdc"
+    shutil.copy2(path_orig, path_test)
+
+    with h5py.File(path_test) as h5:
+        # sanity check
+        assert "deform" in h5["events"]
+
+    with dclab.RTDCWriter(path_test) as hw:
+        hw.store_basin(basin_name="example basin",
+                       basin_type="remote",
+                       basin_format="s3",
+                       basin_locs=[s3_url],
+                       basin_descr="an example test basin",
+                       verify=False,  # we don't have s3fs installed
+                       )
+        del hw.h5file["events/deform"]
+
+    with h5py.File(path_test) as h5:
+        # sanity check
+        assert "deform" not in h5["events"]
+
+    dataset, res = make_dataset(copy.deepcopy(create_context), owner_org,
+                                create_with_upload=create_with_upload,
+                                test_file_name=path_test.name,
+                                activate=True)
+
+    # taken from ckanext/example_iapitoken/tests/test_plugin.py
+    data = helpers.call_action(
+        u"api_token_create",
+        context={u"model": model, u"user": user[u"name"]},
+        user=user[u"name"],
+        name=u"token-name",
+    )
+
+    # Version 1 API does serve all features
+    resp = app.get(
+        "/api/3/action/dcserv",
+        params={"id": res["id"],
+                "query": "feature_list",
+                "version": "1",
+                },
+        headers={u"authorization": data["token"]},
+        status=200
+        )
+    jres = json.loads(resp.body)
+    assert jres["success"]
+    assert len(jres["result"]) == 37
+
+    # Version 2 API does not serve any features
+    resp = app.get(
+        "/api/3/action/dcserv",
+        params={"id": res["id"],
+                "query": "feature_list",
+                "version": "2",
+                },
+        headers={u"authorization": data["token"]},
+        status=200
+        )
+    jres = json.loads(resp.body)
+    assert jres["success"]
+    assert len(jres["result"]) == 0
+
+    # Version 2 API does not serve any features
+    resp = app.get(
+        "/api/3/action/dcserv",
+        params={"id": res["id"],
+                "query": "feature",
+                "feature": "area_um",
+                "version": "2",
+                },
+        headers={u"authorization": data["token"]},
+        status=409  # ValidationError
+        )
+    jres = json.loads(resp.body)
+    assert not jres["success"]
+
+    # Version two API serves basins
+    resp = app.get(
+        "/api/3/action/dcserv",
+        params={"id": res["id"],
+                "query": "basins",
+                "version": "2",
+                },
+        headers={u"authorization": data["token"]},
+        status=200
+        )
+    jres = json.loads(resp.body)
+    assert jres["success"]
+
+    # The dcserv API only returns the basins it itself creates (The S3 basins,
+    # but it does not recurse into the files on S3, so the original basin
+    # that we wrote in this test is not available; only the remote basins).
+    basins = jres["result"]
+    assert len(basins) == 2
+    for bn in basins:
+        assert bn["type"] == "remote"
+        assert bn["format"] == "s3"
+        assert bn["name"] in ["condensed", "resource"]
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')

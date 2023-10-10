@@ -14,6 +14,10 @@ import h5py
 import numpy as np
 
 
+def admin_context():
+    return {'ignore_auth': True, 'user': 'default'}
+
+
 def get_rtdc_instance(res_id, force_s3=False):
     """Return instance of RTDCBase
 
@@ -74,8 +78,10 @@ def get_rtdc_instance_s3(res_id):
     with the same identifier should be fast.
     """
     rid = res_id
-    res_dict = toolkit.call_action("resource_show", id=rid)
-    ds_dict = toolkit.call_action("package_show", id=res_dict["package_id"])
+    res_dict = toolkit.get_action("resource_show")(context=admin_context(),
+                                                   data_dict={"id": rid})
+    ds_dict = toolkit.get_action("package_show")(
+        context=admin_context(), data_dict={"id": res_dict["package_id"]})
     endpoint = get_ckan_config_option("dcor_object_store.endpoint_url")
     bucket_name = get_ckan_config_option(
         "dcor_object_store.bucket_name").format(
@@ -101,13 +107,20 @@ def get_rtdc_instance_s3(res_id):
         basin_paths.append(bp)
 
     fd = io.BytesIO()
-    with h5py.File(fd, "w", libver="latest") as hw:
+    with h5py.File(fd, "w", libver="latest") as hv:
+        # We don't use RTDCWriter as a context manager to avoid overhead
+        # during __exit__, but then we have to make sure "events" is there.
+        hv.require_group("events")
+        hw = dclab.RTDCWriter(hv)
         hw.store_metadata(meta)
         for on, bp in zip(object_names, basin_paths):
-            hw.store_basin(name=on.split("/")[0],
-                           format="s3",
-                           type="remote",
+            hw.store_basin(basin_name=on.split("/")[0],
+                           basin_format="s3",
+                           basin_type="remote",
                            basin_locs=[bp],
+                           # Don't verify anything. This would only cost time
+                           # and we know these objects exist.
+                           verify=False,
                            )
     return dclab.rtdc_dataset.fmt_hdf5.RTDC_HDF5(fd)
 
@@ -177,49 +190,49 @@ def dcserv(context, data_dict=None):
         path = get_resource_path(res_id)
         data = path.exists()
     else:
-        with get_rtdc_instance(res_id, force_s3=version_is_2) as ds:
-            if query == "feature":
-                if version_is_2:
-                    # We are forcing the usage of basins in the client.
-                    raise logic.ValidationError(
-                        "Features unavailable, use basins!")
-                else:
-                    data = get_feature_data(data_dict, ds)
-            elif query == "feature_list":
-                if version_is_2:
-                    data = []
-                else:
-                    data = ds.features_loaded
-            elif query == "logs":
-                data = dict(ds.logs)
-            elif query == "metadata":
-                data = ds.config.as_dict(pop_filtering=True)
-            elif query == "size":
-                data = len(ds)
-            elif query == "basins":
-                # Return all basins from the condensed file
-                # (the S3 basins are already in there).
-                data = ds.basins_get_dicts()
-            elif query == "tables":
-                data = {}
-                for tab in ds.tables:
-                    data[tab] = (ds.tables[tab].dtype.names,
-                                 ds.tables[tab][:].tolist())
-            elif query == "trace":
-                warnings.warn("A dc_serve client is using the 'trace' query!",
-                              DeprecationWarning)
-                # backwards-compatibility
-                data_dict["query"] = "feature"
-                data_dict["feature"] = "trace"
-                data = get_feature_data(data_dict, ds)
-            elif query == "trace_list":
-                if "trace" in ds:
-                    data = sorted(ds["trace"].keys())
-                else:
-                    data = []
-            else:
+        ds = get_rtdc_instance(res_id, force_s3=version_is_2)
+        if query == "feature":
+            if version_is_2:
+                # We are forcing the usage of basins in the client.
                 raise logic.ValidationError(
-                    f"Invalid query parameter '{query}'!")
+                    "Features unavailable, use basins!")
+            else:
+                data = get_feature_data(data_dict, ds)
+        elif query == "feature_list":
+            if version_is_2:
+                data = []
+            else:
+                data = ds.features_loaded
+        elif query == "logs":
+            data = dict(ds.logs)
+        elif query == "metadata":
+            data = ds.config.as_dict(pop_filtering=True)
+        elif query == "size":
+            data = len(ds)
+        elif query == "basins":
+            # Return all basins from the condensed file
+            # (the S3 basins are already in there).
+            data = ds.basins_get_dicts()
+        elif query == "tables":
+            data = {}
+            for tab in ds.tables:
+                data[tab] = (ds.tables[tab].dtype.names,
+                             ds.tables[tab][:].tolist())
+        elif query == "trace":
+            warnings.warn("A dc_serve client is using the 'trace' query!",
+                          DeprecationWarning)
+            # backwards-compatibility
+            data_dict["query"] = "feature"
+            data_dict["feature"] = "trace"
+            data = get_feature_data(data_dict, ds)
+        elif query == "trace_list":
+            if "trace" in ds:
+                data = sorted(ds["trace"].keys())
+            else:
+                data = []
+        else:
+            raise logic.ValidationError(
+                f"Invalid query parameter '{query}'!")
     return data
 
 
