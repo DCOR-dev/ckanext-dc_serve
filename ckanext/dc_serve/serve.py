@@ -1,3 +1,4 @@
+import atexit
 import functools
 import io
 import warnings
@@ -279,3 +280,7 @@ def get_trace_data(data_dict, ds):
 
     data = ds["trace"][trace][event].tolist()
     return data
+
+
+atexit.register(get_rtdc_instance_local.cache_clear)
+atexit.register(get_rtdc_instance_s3.cache_clear)
