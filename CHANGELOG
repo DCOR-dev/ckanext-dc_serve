@@ -1,3 +1,5 @@
+0.13.3
+ - setup: bump dclab to 0.54.0
 0.13.2
  - enh: support accessing basin data via API
  - enh: implement version="2" dcserv API which only returns S3 basins

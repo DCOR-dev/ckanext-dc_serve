@@ -119,7 +119,7 @@ def get_rtdc_instance_s3(res_id):
                            basin_format="s3",
                            basin_type="remote",
                            basin_locs=[bp],
-                           # Don't verify anything. This would only cost time
+                           # Don't verify anything. This would only cost time,
                            # and we know these objects exist.
                            verify=False,
                            )
