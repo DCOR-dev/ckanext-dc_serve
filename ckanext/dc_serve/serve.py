@@ -284,3 +284,4 @@ def get_trace_data(data_dict, ds):
 
 atexit.register(get_rtdc_instance_local.cache_clear)
 atexit.register(get_rtdc_instance_s3.cache_clear)
+atexit.register(is_rtdc_resource.cache_clear)
