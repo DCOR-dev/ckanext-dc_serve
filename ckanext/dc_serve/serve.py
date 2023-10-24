@@ -126,6 +126,33 @@ def get_rtdc_instance_s3(res_id):
     return dclab.rtdc_dataset.fmt_hdf5.RTDC_HDF5(fd)
 
 
+def get_rtdc_logs(ds, from_basins=False):
+    """Return logs of a dataset, optionally looking only in its basins"""
+    logs = {}
+    if from_basins:
+        for bn in ds.basins:
+            if bn.is_available:
+                logs.update(get_rtdc_logs(bn.ds))
+    else:
+        # all the features are
+        logs.update(dict(ds.logs))
+    return logs
+
+
+def get_rtdc_tables(ds, from_basins=False):
+    """Return tables of a dataset, optionally looking only in its basins"""
+    tables = {}
+    if from_basins:
+        for bn in ds.basins:
+            if bn.is_available:
+                tables.update(get_rtdc_tables(bn.ds))
+    else:
+        for tab in ds.tables:
+            tables[tab] = (ds.tables[tab].dtype.names,
+                           ds.tables[tab][:].tolist())
+    return tables
+
+
 # Required so that GET requests work
 @toolkit.side_effect_free
 def dcserv(context, data_dict=None):
@@ -205,7 +232,7 @@ def dcserv(context, data_dict=None):
             else:
                 data = ds.features_loaded
         elif query == "logs":
-            data = dict(ds.logs)
+            data = get_rtdc_logs(ds, from_basins=version_is_2)
         elif query == "metadata":
             data = ds.config.as_dict(pop_filtering=True)
         elif query == "size":
@@ -215,10 +242,7 @@ def dcserv(context, data_dict=None):
             # (the S3 basins are already in there).
             data = ds.basins_get_dicts()
         elif query == "tables":
-            data = {}
-            for tab in ds.tables:
-                data[tab] = (ds.tables[tab].dtype.names,
-                             ds.tables[tab][:].tolist())
+            data = get_rtdc_tables(ds, from_basins=version_is_2)
         elif query == "trace":
             warnings.warn("A dc_serve client is using the 'trace' query!",
                           DeprecationWarning)
