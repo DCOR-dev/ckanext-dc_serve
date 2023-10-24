@@ -1,5 +1,6 @@
 0.13.4
  - fix: logs and tables not served via dcserv API version 2
+ - setup: install [s3] extras from dclab
 0.13.3
  - setup: bump dclab to 0.54.2
 0.13.2
