@@ -131,7 +131,7 @@ def get_rtdc_logs(ds, from_basins=False):
     logs = {}
     if from_basins:
         for bn in ds.basins:
-            if bn.is_available:
+            if bn.is_available():
                 logs.update(get_rtdc_logs(bn.ds))
     else:
         # all the features are
@@ -144,7 +144,7 @@ def get_rtdc_tables(ds, from_basins=False):
     tables = {}
     if from_basins:
         for bn in ds.basins:
-            if bn.is_available:
+            if bn.is_available():
                 tables.update(get_rtdc_tables(bn.ds))
     else:
         for tab in ds.tables:
