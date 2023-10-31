@@ -43,7 +43,7 @@ setup(
     install_requires=[
         # the "ckan" dependency is implied
         "dclab[s3]>=0.54.2",
-        "dcor_shared>=0.5.2",
+        "dcor_shared>=0.5.3",
     ],
     include_package_data=True,
     # To provide executable scripts, use entry points in preference to the
