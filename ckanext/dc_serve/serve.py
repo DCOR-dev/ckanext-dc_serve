@@ -116,7 +116,7 @@ def get_rtdc_instance_s3(res_id):
         hw.store_metadata(meta)
         for on, bp in zip(object_names, basin_paths):
             hw.store_basin(basin_name=on.split("/")[0],
-                           basin_format="s3",
+                           basin_format="http",
                            basin_type="remote",
                            basin_locs=[bp],
                            # Don't verify anything. This would only cost time,
@@ -173,13 +173,13 @@ def dcserv(context, data_dict=None):
      - 'size': the number of events in the dataset
      - 'tables': dictionary of tables (each entry consists of a tuple
         with the column names and the array data)
-     - 'basins': list of basin dictionaries (upstream and S3 data)
+     - 'basins': list of basin dictionaries (upstream and http data)
      - 'trace_list': list of available traces
      - 'valid': whether the corresponding .rtdc file is accessible.
      - 'version': which version of the API to use (defaults to 1);
         If you specify '2' and the resource and condensed resources are
         on S3, then no feature data is served via the API, only basins
-        (on S3) are specified.
+        (on S3) are specified via the "http" remote.
 
     The "result" value will either be a dictionary
     resembling RTDCBase.config (e.g. query=metadata),
