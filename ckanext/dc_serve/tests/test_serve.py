@@ -2,6 +2,7 @@ import copy
 import json
 import mock
 import shutil
+import time
 import uuid
 
 import ckan.model as model
@@ -16,6 +17,18 @@ import numpy as np
 import pytest
 
 from .helper_methods import data_path, make_dataset, synchronous_enqueue_job
+
+
+def synchronous_enqueue_job(job_func, args=None, kwargs=None, title=None,
+                            queue=None, rq_kwargs=None):
+    """
+    Synchronous mock for ``ckan.plugins.toolkit.enqueue_job``.
+    """
+    if rq_kwargs is None:
+        rq_kwargs = {}
+    args = args or []
+    kwargs = kwargs or {}
+    job_func(*args, **kwargs)
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
@@ -450,7 +463,7 @@ def test_api_dcserv_basin_v2(enqueue_job_mock, app, create_with_upload,
     assert len(basins) == 2
     for bn in basins:
         assert bn["type"] == "remote"
-        assert bn["format"] == "s3"
+        assert bn["format"] == "http"
         assert bn["name"] in ["condensed", "resource"]
 
 
@@ -606,7 +619,19 @@ def test_api_dcserv_logs(app, create_with_upload):
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
 @pytest.mark.usefixtures('clean_db', 'with_request_context')
-def test_api_dcserv_metadata(app, create_with_upload):
+@mock.patch('ckan.plugins.toolkit.enqueue_job',
+            side_effect=synchronous_enqueue_job)
+def test_api_dcserv_metadata(enqueue_job_mock, app, create_with_upload,
+                             monkeypatch, ckan_config, tmpdir):
+    monkeypatch.setitem(ckan_config, 'ckan.storage_path', str(tmpdir))
+    monkeypatch.setattr(ckan.lib.uploader,
+                        'get_storage_path',
+                        lambda: str(tmpdir))
+    monkeypatch.setattr(
+        ckanext.dcor_schemas.plugin,
+        'DISABLE_AFTER_DATASET_CREATE_FOR_CONCURRENT_JOB_TESTS',
+        True)
+
     user = factories.User()
     owner_org = factories.Organization(users=[{
         'name': user['id'],
@@ -614,7 +639,8 @@ def test_api_dcserv_metadata(app, create_with_upload):
     }])
     # Note: `call_action` bypasses authorization!
     create_context = {'ignore_auth': False,
-                      'user': user['name'], 'api_version': 3}
+                      'user': user['name'],
+                      'api_version': 3}
     # create a dataset
     dataset, res = make_dataset(create_context, owner_org,
                                 create_with_upload=create_with_upload,

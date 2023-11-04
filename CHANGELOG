@@ -1,3 +1,6 @@
+0.13.11
+ - fix: old presigned URLs were cached for HTTP basins in dcserv
+ - setup: bump dclab to 0.55.4 (better fmt_http)
 0.13.10
  - setup: bump dclab to 0.55.2 (timeouts)
 0.13.9

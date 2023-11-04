@@ -65,7 +65,8 @@ def get_rtdc_instance_local(res_id):
     return dclab.rtdc_dataset.fmt_hdf5.RTDC_HDF5(h5io)
 
 
-@functools.lru_cache(maxsize=100)
+# This function must not be lru_cached, because it yields temporarily
+# valid basins in the returned file object.
 def get_rtdc_instance_s3(res_id):
     """Same as `get_rtdc_instance_local`, except that data are taken from S3
 
@@ -78,25 +79,14 @@ def get_rtdc_instance_s3(res_id):
     This method is cached using an `lru_cache`, so consecutive calls
     with the same identifier should be fast.
     """
-    rid = res_id
-    res_dict = toolkit.get_action("resource_show")(context=admin_context(),
-                                                   data_dict={"id": rid})
-    ds_dict = toolkit.get_action("package_show")(
-        context=admin_context(), data_dict={"id": res_dict["package_id"]})
+    res_dict, ds_dict = get_resource_info(res_id)
     endpoint = get_ckan_config_option("dcor_object_store.endpoint_url")
     bucket_name = get_ckan_config_option(
         "dcor_object_store.bucket_name").format(
         organization_id=ds_dict["organization"]["id"])
+    rid = res_id
     object_names = [f"resource/{rid[:3]}/{rid[3:6]}/{rid[6:]}",
                     f"condensed/{rid[:3]}/{rid[3:6]}/{rid[6:]}"]
-
-    # build metadata dictionary from resource metadata
-    meta = {}
-    for item in res_dict:
-        if item.startswith("dc:"):
-            _, sec, key = item.split(":", 2)
-            meta.setdefault(sec, {})
-            meta[sec][key] = res_dict[item]
 
     basin_paths = []
     for on in object_names:
@@ -113,7 +103,7 @@ def get_rtdc_instance_s3(res_id):
         # during __exit__, but then we have to make sure "events" is there.
         hv.require_group("events")
         hw = dclab.RTDCWriter(hv)
-        hw.store_metadata(meta)
+        hw.store_metadata(get_rtdc_config(res_id))
         for on, bp in zip(object_names, basin_paths):
             hw.store_basin(basin_name=on.split("/")[0],
                            basin_format="http",
@@ -124,6 +114,28 @@ def get_rtdc_instance_s3(res_id):
                            verify=False,
                            )
     return dclab.rtdc_dataset.fmt_hdf5.RTDC_HDF5(fd)
+
+
+@functools.lru_cache(maxsize=512)
+def get_resource_info(res_id):
+    res_dict = toolkit.get_action("resource_show")(context=admin_context(),
+                                                   data_dict={"id": res_id})
+    ds_dict = toolkit.get_action("package_show")(
+        context=admin_context(), data_dict={"id": res_dict["package_id"]})
+    return res_dict, ds_dict
+
+
+@functools.lru_cache(maxsize=512)
+def get_rtdc_config(res_id):
+    res_dict, _ = get_resource_info(res_id)
+    # build metadata dictionary from resource metadata
+    meta = {}
+    for item in res_dict:
+        if item.startswith("dc:"):
+            _, sec, key = item.split(":", 2)
+            meta.setdefault(sec, {})
+            meta[sec][key] = res_dict[item]
+    return meta
 
 
 def get_rtdc_logs(ds, from_basins=False):
@@ -217,6 +229,8 @@ def dcserv(context, data_dict=None):
     if query == "valid":
         path = get_resource_path(res_id)
         data = path.exists()
+    elif query == "metadata":
+        return get_rtdc_config(res_id)
     else:
         ds = get_rtdc_instance(res_id, force_s3=version_is_2)
         if query == "feature":
@@ -233,8 +247,6 @@ def dcserv(context, data_dict=None):
                 data = ds.features_loaded
         elif query == "logs":
             data = get_rtdc_logs(ds, from_basins=version_is_2)
-        elif query == "metadata":
-            data = ds.config.as_dict(pop_filtering=True)
         elif query == "size":
             data = len(ds)
         elif query == "basins":
@@ -307,5 +319,6 @@ def get_trace_data(data_dict, ds):
 
 
 atexit.register(get_rtdc_instance_local.cache_clear)
-atexit.register(get_rtdc_instance_s3.cache_clear)
 atexit.register(is_rtdc_resource.cache_clear)
+atexit.register(get_resource_info.cache_clear)
+atexit.register(get_rtdc_config.cache_clear)
