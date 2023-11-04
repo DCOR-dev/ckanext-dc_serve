@@ -2,7 +2,6 @@ import copy
 import json
 import mock
 import shutil
-import time
 import uuid
 
 import ckan.model as model
@@ -17,18 +16,6 @@ import numpy as np
 import pytest
 
 from .helper_methods import data_path, make_dataset, synchronous_enqueue_job
-
-
-def synchronous_enqueue_job(job_func, args=None, kwargs=None, title=None,
-                            queue=None, rq_kwargs=None):
-    """
-    Synchronous mock for ``ckan.plugins.toolkit.enqueue_job``.
-    """
-    if rq_kwargs is None:
-        rq_kwargs = {}
-    args = args or []
-    kwargs = kwargs or {}
-    job_func(*args, **kwargs)
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
