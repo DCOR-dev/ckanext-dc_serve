@@ -4,7 +4,7 @@ from dclab.cli import condense
 from dcor_shared import (
     DC_MIME_TYPES, s3, sha256sum, get_ckan_config_option, get_resource_path,
     wait_for_resource)
-
+import h5py
 
 from .res_file_lock import CKANResourceFileLock
 
@@ -38,6 +38,13 @@ def generate_condensed_resource_job(resource, override=False):
                              path_in=path,
                              ancillaries=True,
                              check_suffix=False)
+                    # Determine the features that are not in the condensed
+                    # dataset.
+                    with h5py.File(path) as hsrc, h5py.File(cond) as hdst:
+                        feats_src = set(hsrc["events"].keys())
+                        feats_dst = set(hdst["events"].keys())
+                    feats_upstream = sorted(feats_src - feats_dst)
+
                     # Write DCOR basins
                     with RTDCWriter(cond) as hw:
                         # DCOR
@@ -50,7 +57,7 @@ def generate_condensed_resource_job(resource, override=False):
                             basin_format="dcor",
                             basin_locs=[dcor_url],
                             basin_descr="Original access via DCOR API",
-                            basin_feats=None,
+                            basin_feats=feats_upstream,
                             verify=False)
                         # S3
                         s3_endpoint = get_ckan_config_option(
@@ -69,7 +76,7 @@ def generate_condensed_resource_job(resource, override=False):
                             basin_format="s3",
                             basin_locs=[s3_url],
                             basin_descr="Direct access via S3",
-                            basin_feats=None,
+                            basin_feats=feats_upstream,
                             verify=False)
                         # HTTP (only works for public resources)
                         hw.store_basin(
@@ -78,7 +85,7 @@ def generate_condensed_resource_job(resource, override=False):
                             basin_format="http",
                             basin_locs=[s3_url],
                             basin_descr="Public resource access via HTTP",
-                            basin_feats=None,
+                            basin_feats=feats_upstream,
                             verify=False)
                     return True
     return False

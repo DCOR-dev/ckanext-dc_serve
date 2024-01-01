@@ -177,3 +177,7 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_basin(
         assert np.allclose(np.mean(ds["image"][0]),
                            47.15595,
                            rtol=0, atol=1e-4)
+        # The basin features should only list those that are not in
+        # the condensed dataset.
+        assert ds.basins[0].features == [
+            "contour", "image", "mask", "trace"]
