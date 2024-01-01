@@ -61,8 +61,8 @@ Vagrant.configure("2") do |config|
   # backing providers for Vagrant. These expose provider-specific options.
   # Reduce requirements so everythin runs on GitHub Actions
   config.vm.provider "virtualbox" do |v|
-    v.memory = 1024
-    v.cpus = 2
+    v.memory = 2048
+    v.cpus = 1
   end
 
   # Enable provisioning with a shell script. Additional provisioners such as
