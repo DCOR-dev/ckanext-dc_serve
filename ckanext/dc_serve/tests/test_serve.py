@@ -1,6 +1,6 @@
 import copy
 import json
-import mock
+from unittest import mock
 import shutil
 import uuid
 
