@@ -24,14 +24,6 @@ Vagrant.configure("2") do |config|
   # accessing "localhost:8080" will access port 80 on the guest machine.
   # NOTE: This will enable public access to the opened port
   # config.vm.network "forwarded_port", guest: 80, host: 8080
-  # solr: http://localhost:8983/solr/
-  # config.vm.network "forwarded_port", guest: 8983, host: 8983
-  # CKAN
-  # config.vm.network "forwarded_port", guest: 80, host: 8888
-  # MinIO console
-  # config.vm.network "forwarded_port", guest: 9001, host: 9001
-  # MinIO S3 object store
-  # config.vm.network "forwarded_port", guest: 9000, host: 9000
 
   # Create a forwarded port mapping which allows access to a specific port
   # within the machine from a port on the host machine and only allow access
@@ -52,7 +44,7 @@ Vagrant.configure("2") do |config|
   # the path on the guest to mount the folder. And the optional third
   # argument is a set of non-required options.
   # config.vm.synced_folder "../data", "/vagrant_data"
-  config.vm.synced_folder ".", "/vagrant", disabled: true
+  # config.vm.synced_folder ".", "/vagrant", disabled: true
   config.vm.synced_folder ".", "/testing", type: "rsync",
     rsync__args: ["-vzra", "--delete"],
     rsync__exclude: ["*.pyc", "__pycache__"],
@@ -65,6 +57,7 @@ Vagrant.configure("2") do |config|
     v.cpus = 1
   end
 
+
   # Enable provisioning with a shell script. Additional provisioners such as
   # Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
   # documentation for more information about their specific syntax and use.
@@ -75,5 +68,5 @@ Vagrant.configure("2") do |config|
 
   # Prevent reinstallation of guest additinos on every vagrant up
   # (Uncomment the next line in your CI tests)
-  config.vbguest.auto_update = false
+  # config.vbguest.auto_update = false
 end
