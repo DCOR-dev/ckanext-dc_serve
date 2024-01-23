@@ -17,7 +17,7 @@ def generate_condensed_resource_job(resource, override=False):
     """Generates a condensed version of the dataset"""
     path = get_resource_path(resource["id"])
     if resource["mimetype"] in DC_MIME_TYPES:
-        wait_for_resource(path)
+        wait_for_resource(resource["id"])
         cond = path.with_name(path.name + "_condensed.rtdc")
         if not cond.exists() or override:
             with CKANResourceFileLock(
