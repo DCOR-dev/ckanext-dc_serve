@@ -93,7 +93,7 @@ def get_rtdc_instance_s3_presigned(res_id):
         hw = dclab.RTDCWriter(hv)
         hw.store_metadata(get_rtdc_config(res_id))
         for bp in basin_paths:
-            urlp = urlparse(bp) # e.g. http://localhost/bucket/resource/id
+            urlp = urlparse(bp)  # e.g. http://localhost/bucket/resource/id
             hw.store_basin(
                 basin_name=urlp.path.split("/")[2],  # e.g. "resource"
                 basin_format="http",
