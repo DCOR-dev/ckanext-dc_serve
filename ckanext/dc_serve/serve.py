@@ -1,6 +1,7 @@
 import atexit
 import functools
 import io
+from urllib.parse import urlparse
 import warnings
 
 import ckan.logic as logic
@@ -9,8 +10,7 @@ import ckan.plugins.toolkit as toolkit
 
 import dclab
 from dclab.rtdc_dataset import linker as dclab_linker
-from dcor_shared import (
-    DC_MIME_TYPES, get_resource_path, get_ckan_config_option, s3)
+from dcor_shared import DC_MIME_TYPES, get_resource_path, s3cc
 import h5py
 import numpy as np
 
@@ -33,7 +33,7 @@ def get_rtdc_instance(res_id, force_s3=False):
     if path.exists() and not force_s3:
         return get_rtdc_instance_local(res_id)
     else:
-        return get_rtdc_instance_s3(res_id)
+        return get_rtdc_instance_s3_presigned(res_id)
 
 
 @functools.lru_cache(maxsize=100)
@@ -67,7 +67,7 @@ def get_rtdc_instance_local(res_id):
 
 # This function must not be lru_cached, because it yields temporarily
 # valid basins in the returned file object.
-def get_rtdc_instance_s3(res_id):
+def get_rtdc_instance_s3_presigned(res_id):
     """Same as `get_rtdc_instance_local`, except that data are taken from S3
 
     The `rid` identifier is used to identify the S3 object store key.
@@ -75,26 +75,14 @@ def get_rtdc_instance_s3(res_id):
     This method does not create an HDF5 file that contains links to
     datasets on S3, but instead uses basins that were introduced in
     dclab 0.53.0.
-
-    This method is cached using an `lru_cache`, so consecutive calls
-    with the same identifier should be fast.
     """
     res_dict, ds_dict = get_resource_info(res_id)
-    endpoint = get_ckan_config_option("dcor_object_store.endpoint_url")
-    bucket_name = get_ckan_config_option(
-        "dcor_object_store.bucket_name").format(
-        organization_id=ds_dict["organization"]["id"])
-    rid = res_id
-    object_names = [f"resource/{rid[:3]}/{rid[3:6]}/{rid[6:]}",
-                    f"condensed/{rid[:3]}/{rid[3:6]}/{rid[6:]}"]
-
     basin_paths = []
-    for on in object_names:
+    for artifact in ["resource", "condensed"]:
         if ds_dict["private"]:
-            bp = s3.create_presigned_url(bucket_name=bucket_name,
-                                         object_name=on)
+            bp = s3cc.create_presigned_url(res_id, artifact=artifact)
         else:
-            bp = f"{endpoint}/{bucket_name}/{on}"
+            bp = s3cc.get_s3_url_for_artifact(res_id, artifact=artifact)
         basin_paths.append(bp)
 
     fd = io.BytesIO()
@@ -104,15 +92,17 @@ def get_rtdc_instance_s3(res_id):
         hv.require_group("events")
         hw = dclab.RTDCWriter(hv)
         hw.store_metadata(get_rtdc_config(res_id))
-        for on, bp in zip(object_names, basin_paths):
-            hw.store_basin(basin_name=on.split("/")[0],
-                           basin_format="http",
-                           basin_type="remote",
-                           basin_locs=[bp],
-                           # Don't verify anything. This would only cost time,
-                           # and we know these objects exist.
-                           verify=False,
-                           )
+        for bp in basin_paths:
+            urlp = urlparse(bp) # e.g. http://localhost/bucket/resource/id
+            hw.store_basin(
+                basin_name=urlp.path.split("/")[2],  # e.g. "resource"
+                basin_format="http",
+                basin_type="remote",
+                basin_locs=[bp],
+                # Don't verify anything. This would only cost time,
+                # and we know these objects exist.
+                verify=False,
+                )
     return dclab.rtdc_dataset.fmt_hdf5.RTDC_HDF5(fd)
 
 
