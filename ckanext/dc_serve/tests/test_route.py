@@ -1,3 +1,4 @@
+import pathlib
 from unittest import mock
 
 import ckan.common
@@ -9,7 +10,10 @@ import dcor_shared
 
 import pytest
 
-from .helper_methods import make_dataset, synchronous_enqueue_job
+from dcor_shared.testing import make_dataset, synchronous_enqueue_job
+
+
+data_path = pathlib.Path(__file__).parent / "data"
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_depot dcor_schemas dc_serve')
@@ -42,11 +46,13 @@ def test_route_redircet_condensed_to_s3_private(
                       'user': user['name'],
                       'api_version': 3}
     # create a dataset
-    ds_dict, res_dict = make_dataset(create_context, owner_org,
-                                     create_with_upload=create_with_upload,
-                                     activate=True,
-                                     private=True
-                                     )
+    ds_dict, res_dict = make_dataset(
+        create_context, owner_org,
+        create_with_upload=create_with_upload,
+        resource_path=data_path / "calibration_beads_47.rtdc",
+        activate=True,
+        private=True
+        )
     rid = res_dict["id"]
     assert "s3_available" in res_dict
     assert "s3_url" in res_dict
@@ -122,9 +128,11 @@ def test_route_condensed_to_s3_public(
                       'user': user['name'],
                       'api_version': 3}
     # create a dataset
-    ds_dict, res_dict = make_dataset(create_context, owner_org,
-                                     create_with_upload=create_with_upload,
-                                     activate=True)
+    ds_dict, res_dict = make_dataset(
+        create_context, owner_org,
+        create_with_upload=create_with_upload,
+        resource_path=data_path / "calibration_beads_47.rtdc",
+        activate=True)
     rid = res_dict["id"]
     assert "s3_available" in res_dict
     assert "s3_url" in res_dict
@@ -181,11 +189,13 @@ def test_route_redircet_resource_to_s3_private(
                       'user': user['name'],
                       'api_version': 3}
     # create a dataset
-    ds_dict, res_dict = make_dataset(create_context, owner_org,
-                                     create_with_upload=create_with_upload,
-                                     activate=True,
-                                     private=True
-                                     )
+    ds_dict, res_dict = make_dataset(
+        create_context, owner_org,
+        create_with_upload=create_with_upload,
+        resource_path=data_path / "calibration_beads_47.rtdc",
+        activate=True,
+        private=True
+        )
     rid = res_dict["id"]
     assert "s3_available" in res_dict
     assert "s3_url" in res_dict

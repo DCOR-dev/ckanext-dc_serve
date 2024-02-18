@@ -1,6 +1,13 @@
-import dcor_shared
+from dcor_shared import get_resource_path, s3cc
 
 
 def resource_has_condensed(resource_id):
-    rpath = dcor_shared.get_resource_path(resource_id)
-    return rpath.with_name(rpath.stem + "_condensed.rtdc").exists()
+    """Return True if a condensed resource exists"""
+    rpath = get_resource_path(resource_id)
+    cpath = rpath.with_name(rpath.stem + "_condensed.rtdc")
+    return (
+        # block storage existence
+        cpath.exists()
+        # S3 existence
+        or s3cc.object_exists(resource_id, artifact="condensed")
+    )

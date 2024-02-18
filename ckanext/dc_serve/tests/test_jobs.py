@@ -22,7 +22,10 @@ import ckanext.dcor_schemas.plugin
 import dcor_shared
 
 
-from .helper_methods import data_path, make_dataset, synchronous_enqueue_job
+from dcor_shared.testing import make_dataset, synchronous_enqueue_job
+
+
+data_path = pathlib.Path(__file__).parent / "data"
 
 
 # We need the dcor_depot extension to make sure that the symbolic-
@@ -96,9 +99,11 @@ def test_upload_condensed_dataset_to_s3_job(
     create_context = {'ignore_auth': False,
                       'user': user['name'],
                       'api_version': 3}
-    ds_dict, res_dict = make_dataset(create_context, owner_org,
-                                     create_with_upload=create_with_upload,
-                                     activate=True)
+    ds_dict, res_dict = make_dataset(
+        create_context, owner_org,
+        create_with_upload=create_with_upload,
+        resource_path=data_path / "calibration_beads_47.rtdc",
+        activate=True)
     bucket_name = dcor_shared.get_ckan_config_option(
         "dcor_object_store.bucket_name").format(
         organization_id=ds_dict["organization"]["id"])
@@ -147,9 +152,11 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_basin(
     create_context = {'ignore_auth': False,
                       'user': user['name'],
                       'api_version': 3}
-    ds_dict, res_dict = make_dataset(create_context, owner_org,
-                                     create_with_upload=create_with_upload,
-                                     activate=True)
+    ds_dict, res_dict = make_dataset(
+        create_context, owner_org,
+        create_with_upload=create_with_upload,
+        resource_path=data_path / "calibration_beads_47.rtdc",
+        activate=True)
     bucket_name = dcor_shared.get_ckan_config_option(
         "dcor_object_store.bucket_name").format(
         organization_id=ds_dict["organization"]["id"])

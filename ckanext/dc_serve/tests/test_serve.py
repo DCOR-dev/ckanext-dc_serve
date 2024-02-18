@@ -1,5 +1,6 @@
 import copy
 import json
+import pathlib
 from unittest import mock
 import shutil
 import uuid
@@ -15,7 +16,10 @@ import numpy as np
 
 import pytest
 
-from .helper_methods import data_path, make_dataset, synchronous_enqueue_job
+from dcor_shared.testing import make_dataset, synchronous_enqueue_job
+
+
+data_path = pathlib.Path(__file__).parent / "data"
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
@@ -31,10 +35,12 @@ def test_auth_forbidden(app, create_with_upload):
     create_context = {'ignore_auth': False,
                       'user': user['name'], 'api_version': 3}
     # create a dataset
-    dataset, res = make_dataset(create_context, owner_org,
-                                create_with_upload=create_with_upload,
-                                activate=True,
-                                private=True)
+    dataset, res = make_dataset(
+        create_context, owner_org,
+        create_with_upload=create_with_upload,
+        resource_path=data_path / "calibration_beads_47.rtdc",
+        activate=True,
+        private=True)
     # taken from ckanext/example_iapitoken/tests/test_plugin.py
     data2 = helpers.call_action(
         u"api_token_create",
@@ -67,9 +73,11 @@ def test_api_dcserv_error(app, create_with_upload):
     create_context = {'ignore_auth': False,
                       'user': user['name'], 'api_version': 3}
     # create a dataset
-    dataset, res = make_dataset(create_context, owner_org,
-                                create_with_upload=create_with_upload,
-                                activate=True)
+    dataset, res = make_dataset(
+        create_context, owner_org,
+        create_with_upload=create_with_upload,
+        resource_path=data_path / "calibration_beads_47.rtdc",
+        activate=True)
     # taken from ckanext/example_iapitoken/tests/test_plugin.py
     data = helpers.call_action(
         u"api_token_create",
@@ -142,9 +150,11 @@ def test_api_dcserv_error_feature(app, create_with_upload):
     create_context = {'ignore_auth': False,
                       'user': user['name'], 'api_version': 3}
     # create a dataset
-    dataset, res = make_dataset(create_context, owner_org,
-                                create_with_upload=create_with_upload,
-                                activate=True)
+    dataset, res = make_dataset(
+        create_context, owner_org,
+        create_with_upload=create_with_upload,
+        resource_path=data_path / "calibration_beads_47.rtdc",
+        activate=True)
     # taken from ckanext/example_iapitoken/tests/test_plugin.py
     data = helpers.call_action(
         u"api_token_create",
@@ -221,9 +231,11 @@ def test_api_dcserv_error_feature_trace(app, create_with_upload):
     create_context = {'ignore_auth': False,
                       'user': user['name'], 'api_version': 3}
     # create a dataset
-    dataset, res = make_dataset(create_context, owner_org,
-                                create_with_upload=create_with_upload,
-                                activate=True)
+    dataset, res = make_dataset(
+        create_context, owner_org,
+        create_with_upload=create_with_upload,
+        resource_path=data_path / "calibration_beads_47.rtdc",
+        activate=True)
     # taken from ckanext/example_iapitoken/tests/test_plugin.py
     data = helpers.call_action(
         u"api_token_create",
@@ -265,7 +277,7 @@ def test_api_dcserv_error_feature_trace(app, create_with_upload):
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
 @pytest.mark.usefixtures('clean_db', 'with_request_context')
-def test_api_dcserv_basin(app, create_with_upload):
+def test_api_dcserv_basin(app, create_with_upload, tmp_path):
     user = factories.User()
     owner_org = factories.Organization(users=[{
         'name': user['id'],
@@ -277,7 +289,7 @@ def test_api_dcserv_basin(app, create_with_upload):
                       'api_version': 3}
     # create a dataset
     path_orig = data_path / "calibration_beads_47.rtdc"
-    path_test = data_path / "calibration_beads_47_test.rtdc"
+    path_test = tmp_path / "calibration_beads_47_test.rtdc"
     shutil.copy2(path_orig, path_test)
     with dclab.RTDCWriter(path_test) as hw:
         hw.store_basin(basin_name="example basin",
@@ -287,10 +299,11 @@ def test_api_dcserv_basin(app, create_with_upload):
                        basin_descr="an example test basin",
                        )
 
-    dataset, res = make_dataset(create_context, owner_org,
-                                create_with_upload=create_with_upload,
-                                test_file_name=path_test.name,
-                                activate=True)
+    dataset, res = make_dataset(
+        create_context, owner_org,
+        create_with_upload=create_with_upload,
+        resource_path=path_test,
+        activate=True)
 
     # taken from ckanext/example_iapitoken/tests/test_plugin.py
     data = helpers.call_action(
@@ -346,15 +359,17 @@ def test_api_dcserv_basin_v2(enqueue_job_mock, app, create_with_upload,
                       'user': user['name'],
                       'api_version': 3}
 
-    dataset, res = make_dataset(copy.deepcopy(create_context), owner_org,
-                                create_with_upload=create_with_upload,
-                                activate=True)
+    dataset, res = make_dataset(
+        copy.deepcopy(create_context), owner_org,
+        create_with_upload=create_with_upload,
+        resource_path=data_path / "calibration_beads_47.rtdc",
+        activate=True)
 
     s3_url = res["s3_url"]
 
     # create a dataset
     path_orig = data_path / "calibration_beads_47.rtdc"
-    path_test = data_path / "calibration_beads_47_test.rtdc"
+    path_test = pathlib.Path(tmpdir) / "calibration_beads_47_test.rtdc"
     shutil.copy2(path_orig, path_test)
 
     with h5py.File(path_test) as h5:
@@ -375,10 +390,11 @@ def test_api_dcserv_basin_v2(enqueue_job_mock, app, create_with_upload,
         # sanity check
         assert "deform" not in h5["events"]
 
-    dataset, res = make_dataset(copy.deepcopy(create_context), owner_org,
-                                create_with_upload=create_with_upload,
-                                test_file_name=path_test.name,
-                                activate=True)
+    dataset, res = make_dataset(
+        copy.deepcopy(create_context), owner_org,
+        create_with_upload=create_with_upload,
+        resource_path=path_test,
+        activate=True)
 
     # taken from ckanext/example_iapitoken/tests/test_plugin.py
     data = helpers.call_action(
@@ -466,9 +482,11 @@ def test_api_dcserv_feature(app, create_with_upload):
     create_context = {'ignore_auth': False,
                       'user': user['name'], 'api_version': 3}
     # create a dataset
-    dataset, res = make_dataset(create_context, owner_org,
-                                create_with_upload=create_with_upload,
-                                activate=True)
+    dataset, res = make_dataset(
+        create_context, owner_org,
+        create_with_upload=create_with_upload,
+        resource_path=data_path / "calibration_beads_47.rtdc",
+        activate=True)
     # taken from ckanext/example_iapitoken/tests/test_plugin.py
     data = helpers.call_action(
         u"api_token_create",
@@ -504,9 +522,11 @@ def test_api_dcserv_feature_list(app, create_with_upload):
     create_context = {'ignore_auth': False,
                       'user': user['name'], 'api_version': 3}
     # create a dataset
-    dataset, res = make_dataset(create_context, owner_org,
-                                create_with_upload=create_with_upload,
-                                activate=True)
+    dataset, res = make_dataset(
+        create_context, owner_org,
+        create_with_upload=create_with_upload,
+        resource_path=data_path / "calibration_beads_47.rtdc",
+        activate=True)
     # taken from ckanext/example_iapitoken/tests/test_plugin.py
     data = helpers.call_action(
         u"api_token_create",
@@ -540,9 +560,11 @@ def test_api_dcserv_feature_trace(app, create_with_upload):
     create_context = {'ignore_auth': False,
                       'user': user['name'], 'api_version': 3}
     # create a dataset
-    dataset, res = make_dataset(create_context, owner_org,
-                                create_with_upload=create_with_upload,
-                                activate=True)
+    dataset, res = make_dataset(
+        create_context, owner_org,
+        create_with_upload=create_with_upload,
+        resource_path=data_path / "calibration_beads_47.rtdc",
+        activate=True)
     # taken from ckanext/example_iapitoken/tests/test_plugin.py
     data = helpers.call_action(
         u"api_token_create",
@@ -580,9 +602,11 @@ def test_api_dcserv_logs(app, create_with_upload):
     create_context = {'ignore_auth': False,
                       'user': user['name'], 'api_version': 3}
     # create a dataset
-    dataset, res = make_dataset(create_context, owner_org,
-                                create_with_upload=create_with_upload,
-                                activate=True)
+    dataset, res = make_dataset(
+        create_context, owner_org,
+        create_with_upload=create_with_upload,
+        resource_path=data_path / "calibration_beads_47.rtdc",
+        activate=True)
     # taken from ckanext/example_iapitoken/tests/test_plugin.py
     data = helpers.call_action(
         u"api_token_create",
@@ -629,9 +653,11 @@ def test_api_dcserv_metadata(enqueue_job_mock, app, create_with_upload,
                       'user': user['name'],
                       'api_version': 3}
     # create a dataset
-    dataset, res = make_dataset(create_context, owner_org,
-                                create_with_upload=create_with_upload,
-                                activate=True)
+    dataset, res = make_dataset(
+        create_context, owner_org,
+        create_with_upload=create_with_upload,
+        resource_path=data_path / "calibration_beads_47.rtdc",
+        activate=True)
     # taken from ckanext/example_iapitoken/tests/test_plugin.py
     data = helpers.call_action(
         u"api_token_create",
@@ -665,9 +691,11 @@ def test_api_dcserv_size(app, create_with_upload):
     create_context = {'ignore_auth': False,
                       'user': user['name'], 'api_version': 3}
     # create a dataset
-    dataset, res = make_dataset(create_context, owner_org,
-                                create_with_upload=create_with_upload,
-                                activate=True)
+    dataset, res = make_dataset(
+        create_context, owner_org,
+        create_with_upload=create_with_upload,
+        resource_path=data_path / "calibration_beads_47.rtdc",
+        activate=True)
     # taken from ckanext/example_iapitoken/tests/test_plugin.py
     data = helpers.call_action(
         u"api_token_create",
@@ -702,10 +730,11 @@ def test_api_dcserv_tables(app, create_with_upload):
     create_context = {'ignore_auth': False,
                       'user': user['name'], 'api_version': 3}
     # create a dataset
-    dataset, res = make_dataset(create_context, owner_org,
-                                create_with_upload=create_with_upload,
-                                test_file_name="cytoshot_blood.rtdc",
-                                activate=True)
+    dataset, res = make_dataset(
+        create_context, owner_org,
+        create_with_upload=create_with_upload,
+        resource_path=data_path / "cytoshot_blood.rtdc",
+        activate=True)
     # taken from ckanext/example_iapitoken/tests/test_plugin.py
     data = helpers.call_action(
         u"api_token_create",
@@ -741,9 +770,11 @@ def test_api_dcserv_trace_list(app, create_with_upload):
     create_context = {'ignore_auth': False,
                       'user': user['name'], 'api_version': 3}
     # create a dataset
-    dataset, res = make_dataset(create_context, owner_org,
-                                create_with_upload=create_with_upload,
-                                activate=True)
+    dataset, res = make_dataset(
+        create_context, owner_org,
+        create_with_upload=create_with_upload,
+        resource_path=data_path / "calibration_beads_47.rtdc",
+        activate=True)
     # taken from ckanext/example_iapitoken/tests/test_plugin.py
     data = helpers.call_action(
         u"api_token_create",
@@ -779,9 +810,11 @@ def test_api_dcserv_valid(app, create_with_upload):
     create_context = {'ignore_auth': False,
                       'user': user['name'], 'api_version': 3}
     # create a dataset
-    dataset, res = make_dataset(create_context, owner_org,
-                                create_with_upload=create_with_upload,
-                                activate=True)
+    dataset, res = make_dataset(
+        create_context, owner_org,
+        create_with_upload=create_with_upload,
+        resource_path=data_path / "calibration_beads_47.rtdc",
+        activate=True)
     # taken from ckanext/example_iapitoken/tests/test_plugin.py
     data = helpers.call_action(
         u"api_token_create",
