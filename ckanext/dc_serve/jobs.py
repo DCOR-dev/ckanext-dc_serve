@@ -109,5 +109,6 @@ def migrate_condensed_to_s3_job(resource):
         object_name=f"condensed/{rid[:3]}/{rid[3:6]}/{rid[6:]}",
         path=path_cond,
         sha256=sha256,
-        private=ds_dict["private"])
+        private=ds_dict["private"],
+        override=False)
     # TODO: delete the local resource after successful upload?
