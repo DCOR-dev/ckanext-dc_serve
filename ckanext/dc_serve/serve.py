@@ -1,7 +1,5 @@
 import atexit
 import functools
-import io
-from urllib.parse import urlparse
 import warnings
 
 import ckan.logic as logic
@@ -10,8 +8,9 @@ import ckan.plugins.toolkit as toolkit
 
 import dclab
 from dclab.rtdc_dataset import linker as dclab_linker
-from dcor_shared import DC_MIME_TYPES, get_resource_path, s3cc
-import h5py
+from dcor_shared import (
+    DC_MIME_TYPES, get_resource_dc_config, get_resource_path, s3cc
+)
 import numpy as np
 
 
@@ -33,7 +32,7 @@ def get_rtdc_instance(res_id, force_s3=False):
     if path.exists() and not force_s3:
         return get_rtdc_instance_local(res_id)
     else:
-        return get_rtdc_instance_s3_presigned(res_id)
+        return s3cc.get_s3_dc_handle_basin_based(res_id)
 
 
 @functools.lru_cache(maxsize=100)
@@ -63,69 +62,6 @@ def get_rtdc_instance_local(res_id):
 
     h5io = dclab_linker.combine_h5files(paths, external="raise")
     return dclab.rtdc_dataset.fmt_hdf5.RTDC_HDF5(h5io)
-
-
-# This function must not be lru_cached, because it yields temporarily
-# valid basins in the returned file object.
-def get_rtdc_instance_s3_presigned(res_id):
-    """Same as `get_rtdc_instance_local`, except that data are taken from S3
-
-    The `rid` identifier is used to identify the S3 object store key.
-
-    This method does not create an HDF5 file that contains links to
-    datasets on S3, but instead uses basins that were introduced in
-    dclab 0.53.0.
-    """
-    res_dict, ds_dict = get_resource_info(res_id)
-    basin_paths = []
-    for artifact in ["resource", "condensed"]:
-        if ds_dict["private"]:
-            bp = s3cc.create_presigned_url(res_id, artifact=artifact)
-        else:
-            bp = s3cc.get_s3_url_for_artifact(res_id, artifact=artifact)
-        basin_paths.append(bp)
-
-    fd = io.BytesIO()
-    with h5py.File(fd, "w", libver="latest") as hv:
-        # We don't use RTDCWriter as a context manager to avoid overhead
-        # during __exit__, but then we have to make sure "events" is there.
-        hv.require_group("events")
-        hw = dclab.RTDCWriter(hv)
-        hw.store_metadata(get_rtdc_config(res_id))
-        for bp in basin_paths:
-            urlp = urlparse(bp)  # e.g. http://localhost/bucket/resource/id
-            hw.store_basin(
-                basin_name=urlp.path.split("/")[2],  # e.g. "resource"
-                basin_format="http",
-                basin_type="remote",
-                basin_locs=[bp],
-                # Don't verify anything. This would only cost time,
-                # and we know these objects exist.
-                verify=False,
-                )
-    return dclab.rtdc_dataset.fmt_hdf5.RTDC_HDF5(fd)
-
-
-@functools.lru_cache(maxsize=512)
-def get_resource_info(res_id):
-    res_dict = toolkit.get_action("resource_show")(context=admin_context(),
-                                                   data_dict={"id": res_id})
-    ds_dict = toolkit.get_action("package_show")(
-        context=admin_context(), data_dict={"id": res_dict["package_id"]})
-    return res_dict, ds_dict
-
-
-@functools.lru_cache(maxsize=512)
-def get_rtdc_config(res_id):
-    res_dict, _ = get_resource_info(res_id)
-    # build metadata dictionary from resource metadata
-    meta = {}
-    for item in res_dict:
-        if item.startswith("dc:"):
-            _, sec, key = item.split(":", 2)
-            meta.setdefault(sec, {})
-            meta[sec][key] = res_dict[item]
-    return meta
 
 
 def get_rtdc_logs(ds, from_basins=False):
@@ -220,7 +156,7 @@ def dcserv(context, data_dict=None):
         path = get_resource_path(res_id)
         data = path.exists()
     elif query == "metadata":
-        return get_rtdc_config(res_id)
+        return get_resource_dc_config(res_id)
     else:
         ds = get_rtdc_instance(res_id, force_s3=version_is_2)
         if query == "feature":
@@ -310,5 +246,3 @@ def get_trace_data(data_dict, ds):
 
 atexit.register(get_rtdc_instance_local.cache_clear)
 atexit.register(is_rtdc_resource.cache_clear)
-atexit.register(get_resource_info.cache_clear)
-atexit.register(get_rtdc_config.cache_clear)

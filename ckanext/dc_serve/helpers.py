@@ -9,5 +9,5 @@ def resource_has_condensed(resource_id):
         # block storage existence
         cpath.exists()
         # S3 existence
-        or s3cc.object_exists(resource_id, artifact="condensed")
+        or s3cc.artifact_exists(resource_id, artifact="condensed")
     )
