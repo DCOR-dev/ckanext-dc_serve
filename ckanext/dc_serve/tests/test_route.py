@@ -4,7 +4,6 @@ from unittest import mock
 import ckan.common
 import ckan.model
 import ckan.tests.factories as factories
-import ckan.tests.helpers as helpers
 import ckanext.dcor_schemas.plugin
 import dcor_shared
 
@@ -32,7 +31,7 @@ def test_route_redircet_condensed_to_s3_private(
         'DISABLE_AFTER_DATASET_CREATE_FOR_CONCURRENT_JOB_TESTS',
         True)
 
-    user = factories.User()
+    user = factories.UserWithToken()
     user_obj = ckan.model.User.by_name(user["name"])
     monkeypatch.setattr(ckan.common,
                         'current_user',
@@ -52,37 +51,28 @@ def test_route_redircet_condensed_to_s3_private(
         resource_path=data_path / "calibration_beads_47.rtdc",
         activate=True,
         private=True
-        )
+    )
     rid = res_dict["id"]
     assert "s3_available" in res_dict
     assert "s3_url" in res_dict
 
-    # Remove the local resource to make sure CKAN serves the S3 URL
+    # Since version 0.15.0 we don't store the condensed resource locally
     path = dcor_shared.get_resource_path(rid)
     path_cond = path.with_name(path.name + "_condensed.rtdc")
-    assert path_cond.exists()
-    path_cond.unlink()
+    assert not path_cond.exists(), "sanity check"
 
     did = ds_dict["id"]
     # We should not be authorized to access the resource without API token
     resp0 = app.get(
         f"/dataset/{did}/resource/{rid}/condensed.rtdc",
         status=404
-        )
-    assert len(resp0.history) == 0
-
-    # Try again with token
-    data = helpers.call_action(
-        u"api_token_create",
-        context={u"model": ckan.model, u"user": user[u"name"]},
-        user=user[u"name"],
-        name=u"token-name",
     )
+    assert len(resp0.history) == 0
 
     resp = app.get(
         f"/dataset/{did}/resource/{rid}/condensed.rtdc",
-        headers={u"authorization": data["token"]},
-        )
+        headers={u"authorization": user["token"]},
+    )
 
     endpoint = dcor_shared.get_ckan_config_option(
         "dcor_object_store.endpoint_url")
@@ -114,7 +104,7 @@ def test_route_condensed_to_s3_public(
         'DISABLE_AFTER_DATASET_CREATE_FOR_CONCURRENT_JOB_TESTS',
         True)
 
-    user = factories.User()
+    user = factories.UserWithToken()
     user_obj = ckan.model.User.by_name(user["name"])
     monkeypatch.setattr(ckan.common,
                         'current_user',
@@ -137,16 +127,15 @@ def test_route_condensed_to_s3_public(
     assert "s3_available" in res_dict
     assert "s3_url" in res_dict
 
-    # Remove the local resource to make sure CKAN serves the S3 URL
+    # Since version 0.15.0 we don't store the condensed resource locally
     path = dcor_shared.get_resource_path(rid)
     path_cond = path.with_name(path.name + "_condensed.rtdc")
-    assert path_cond.exists()
-    path_cond.unlink()
+    assert not path_cond.exists(), "sanity check"
 
     did = ds_dict["id"]
     resp = app.get(
         f"/dataset/{did}/resource/{rid}/condensed.rtdc",
-        )
+    )
 
     endpoint = dcor_shared.get_ckan_config_option(
         "dcor_object_store.endpoint_url")
@@ -175,7 +164,7 @@ def test_route_redircet_resource_to_s3_private(
         'DISABLE_AFTER_DATASET_CREATE_FOR_CONCURRENT_JOB_TESTS',
         True)
 
-    user = factories.User()
+    user = factories.UserWithToken()
     user_obj = ckan.model.User.by_name(user["name"])
     monkeypatch.setattr(ckan.common,
                         'current_user',
@@ -195,36 +184,28 @@ def test_route_redircet_resource_to_s3_private(
         resource_path=data_path / "calibration_beads_47.rtdc",
         activate=True,
         private=True
-        )
+    )
     rid = res_dict["id"]
     assert "s3_available" in res_dict
     assert "s3_url" in res_dict
 
-    # Remove the local resource to make sure CKAN serves the S3 URL
+    # Since version 0.15.0 we don't store the condensed resource locally
     path = dcor_shared.get_resource_path(rid)
-    assert path.exists()
-    path.unlink()
+    path_cond = path.with_name(path.name + "_condensed.rtdc")
+    assert not path_cond.exists(), "sanity check"
 
     did = ds_dict["id"]
     # We should not be authorized to access the resource without API token
     resp0 = app.get(
         f"/dataset/{did}/resource/{rid}/download/random_name",
         status=404
-        )
-    assert len(resp0.history) == 0
-
-    # Try again with token
-    data = helpers.call_action(
-        u"api_token_create",
-        context={u"model": ckan.model, u"user": user[u"name"]},
-        user=user[u"name"],
-        name=u"token-name",
     )
+    assert len(resp0.history) == 0
 
     resp = app.get(
         f"/dataset/{did}/resource/{rid}/download/random_name",
-        headers={u"authorization": data["token"]},
-        )
+        headers={u"authorization": user["token"]},
+    )
 
     endpoint = dcor_shared.get_ckan_config_option(
         "dcor_object_store.endpoint_url")

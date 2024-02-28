@@ -5,14 +5,12 @@ from unittest import mock
 import shutil
 import uuid
 
-import ckan.model as model
 import ckan.common
 import ckan.tests.factories as factories
-import ckan.tests.helpers as helpers
 import ckanext.dcor_schemas
 import dclab
+from dclab.rtdc_dataset import fmt_http
 import h5py
-import numpy as np
 
 import pytest
 
@@ -25,37 +23,23 @@ data_path = pathlib.Path(__file__).parent / "data"
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
 @pytest.mark.usefixtures('clean_db', 'with_request_context')
 def test_auth_forbidden(app, create_with_upload):
-    user = factories.User()
-    user2 = factories.User()
-    owner_org = factories.Organization(users=[{
-        'name': user['id'],
-        'capacity': 'admin'
-    }])
-    # Note: `call_action` bypasses authorization!
-    create_context = {'ignore_auth': False,
-                      'user': user['name'], 'api_version': 3}
+    user2 = factories.UserWithToken()
+
     # create a dataset
-    dataset, res = make_dataset(
-        create_context, owner_org,
+    _, res_dict = make_dataset(
         create_with_upload=create_with_upload,
         resource_path=data_path / "calibration_beads_47.rtdc",
         activate=True,
         private=True)
-    # taken from ckanext/example_iapitoken/tests/test_plugin.py
-    data2 = helpers.call_action(
-        u"api_token_create",
-        context={u"model": model, u"user": user2[u"name"]},
-        user=user2[u"name"],
-        name=u"token-name",
-    )
+
     resp = app.get(
         "/api/3/action/dcserv",
-        params={"id": res["id"],
+        params={"id": res_dict["id"],
                 "query": "valid",
                 },
-        headers={u"authorization": data2["token"]},
+        headers={u"authorization": user2["token"]},
         status=403
-        )
+    )
     jres = json.loads(resp.body)
     assert not jres["success"]
     assert "not authorized to read resource" in jres["error"]["message"]
@@ -64,36 +48,30 @@ def test_auth_forbidden(app, create_with_upload):
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
 @pytest.mark.usefixtures('clean_db', 'with_request_context')
 def test_api_dcserv_error(app, create_with_upload):
-    user = factories.User()
+    user = factories.UserWithToken()
     owner_org = factories.Organization(users=[{
         'name': user['id'],
         'capacity': 'admin'
     }])
     # Note: `call_action` bypasses authorization!
     create_context = {'ignore_auth': False,
-                      'user': user['name'], 'api_version': 3}
+                      'user': user['name'],
+                      'api_version': 3}
     # create a dataset
-    dataset, res = make_dataset(
+    ds_dict, res_dict = make_dataset(
         create_context, owner_org,
         create_with_upload=create_with_upload,
         resource_path=data_path / "calibration_beads_47.rtdc",
         activate=True)
-    # taken from ckanext/example_iapitoken/tests/test_plugin.py
-    data = helpers.call_action(
-        u"api_token_create",
-        context={u"model": model, u"user": user[u"name"]},
-        user=user[u"name"],
-        name=u"token-name",
-    )
 
     # missing query parameter
     resp = app.get(
         "/api/3/action/dcserv",
-        params={"id": res["id"],
+        params={"id": res_dict["id"],
                 },
-        headers={u"authorization": data["token"]},
+        headers={u"authorization": user["token"]},
         status=409
-        )
+    )
     jres = json.loads(resp.body)
     assert not jres["success"]
     assert "Please specify 'query' parameter" in jres["error"]["message"]
@@ -103,9 +81,9 @@ def test_api_dcserv_error(app, create_with_upload):
         "/api/3/action/dcserv",
         params={"query": "feature",
                 },
-        headers={u"authorization": data["token"]},
+        headers={u"authorization": user["token"]},
         status=409
-        )
+    )
     jres = json.loads(resp.body)
     assert not jres["success"]
     assert "Please specify 'id' parameter" in jres["error"]["message"]
@@ -117,9 +95,9 @@ def test_api_dcserv_error(app, create_with_upload):
         params={"query": "feature_list",
                 "id": bid,
                 },
-        headers={u"authorization": data["token"]},
+        headers={u"authorization": user["token"]},
         status=404
-        )
+    )
     jres = json.loads(resp.body)
     assert not jres["success"]
     assert "Not found" in jres["error"]["message"]
@@ -128,157 +106,31 @@ def test_api_dcserv_error(app, create_with_upload):
     resp = app.get(
         "/api/3/action/dcserv",
         params={"query": "peter",
-                "id": res["id"],
+                "id": res_dict["id"],
                 },
-        headers={u"authorization": data["token"]},
+        headers={u"authorization": user["token"]},
         status=409
-        )
+    )
     jres = json.loads(resp.body)
     assert not jres["success"]
     assert "Invalid query parameter 'peter'" in jres["error"]["message"]
 
 
-@pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
+@pytest.mark.ckan_config('ckan.plugins', 'dcor_depot dcor_schemas dc_serve')
 @pytest.mark.usefixtures('clean_db', 'with_request_context')
-def test_api_dcserv_error_feature(app, create_with_upload):
-    user = factories.User()
-    owner_org = factories.Organization(users=[{
-        'name': user['id'],
-        'capacity': 'admin'
-    }])
-    # Note: `call_action` bypasses authorization!
-    create_context = {'ignore_auth': False,
-                      'user': user['name'], 'api_version': 3}
-    # create a dataset
-    dataset, res = make_dataset(
-        create_context, owner_org,
-        create_with_upload=create_with_upload,
-        resource_path=data_path / "calibration_beads_47.rtdc",
-        activate=True)
-    # taken from ckanext/example_iapitoken/tests/test_plugin.py
-    data = helpers.call_action(
-        u"api_token_create",
-        context={u"model": model, u"user": user[u"name"]},
-        user=user[u"name"],
-        name=u"token-name",
-    )
-
-    # missing feature parameter
-    resp = app.get(
-        "/api/3/action/dcserv",
-        params={"id": res["id"],
-                "query": "feature",
-                },
-        headers={u"authorization": data["token"]},
-        status=409
-        )
-    jres = json.loads(resp.body)
-    assert not jres["success"]
-    assert "Please specify 'feature' parameter" in jres["error"]["message"]
-
-    # missing event parameter
-    resp = app.get(
-        "/api/3/action/dcserv",
-        params={"id": res["id"],
-                "query": "feature",
-                "feature": "image",
-                },
-        headers={u"authorization": data["token"]},
-        status=409
-        )
-    jres = json.loads(resp.body)
-    assert not jres["success"]
-    assert "Please specify 'event' for non-scalar" in jres["error"]["message"]
-
-    # bad feature name
-    resp = app.get(
-        "/api/3/action/dcserv",
-        params={"id": res["id"],
-                "query": "feature",
-                "feature": "peter",
-                },
-        headers={u"authorization": data["token"]},
-        status=409
-        )
-    jres = json.loads(resp.body)
-    assert not jres["success"]
-    assert "Unknown feature name 'peter'" in jres["error"]["message"]
-
-    # feature unavailable
-    resp = app.get(
-        "/api/3/action/dcserv",
-        params={"id": res["id"],
-                "query": "feature",
-                "feature": "ml_score_xyz",
-                },
-        headers={u"authorization": data["token"]},
-        status=409
-        )
-    jres = json.loads(resp.body)
-    assert not jres["success"]
-    assert "Feature 'ml_score_xyz' unavailable" in jres["error"]["message"]
-
-
-@pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db', 'with_request_context')
-def test_api_dcserv_error_feature_trace(app, create_with_upload):
-    user = factories.User()
-    owner_org = factories.Organization(users=[{
-        'name': user['id'],
-        'capacity': 'admin'
-    }])
-    # Note: `call_action` bypasses authorization!
-    create_context = {'ignore_auth': False,
-                      'user': user['name'], 'api_version': 3}
-    # create a dataset
-    dataset, res = make_dataset(
-        create_context, owner_org,
-        create_with_upload=create_with_upload,
-        resource_path=data_path / "calibration_beads_47.rtdc",
-        activate=True)
-    # taken from ckanext/example_iapitoken/tests/test_plugin.py
-    data = helpers.call_action(
-        u"api_token_create",
-        context={u"model": model, u"user": user[u"name"]},
-        user=user[u"name"],
-        name=u"token-name",
-    )
-
-    # missing trace parameter
-    resp = app.get(
-        "/api/3/action/dcserv",
-        params={"id": res["id"],
-                "query": "feature",
-                "feature": "trace",
-                "event": 2,
-                },
-        headers={u"authorization": data["token"]},
-        status=409
-        )
-    jres = json.loads(resp.body)
-    assert not jres["success"]
-    assert "Please specify 'trace' parameter" in jres["error"]["message"]
-
-    # missing event parameter
-    resp = app.get(
-        "/api/3/action/dcserv",
-        params={"id": res["id"],
-                "query": "feature",
-                "feature": "trace",
-                "trace": "fl1_raw"
-                },
-        headers={u"authorization": data["token"]},
-        status=409
-        )
-    jres = json.loads(resp.body)
-    assert not jres["success"]
-    assert "lease specify 'event' for non-scalar" in jres["error"]["message"]
-
-
-@pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db', 'with_request_context')
-def test_api_dcserv_basin(app, create_with_upload, tmp_path):
-    user = factories.User()
+@mock.patch('ckan.plugins.toolkit.enqueue_job',
+            side_effect=synchronous_enqueue_job)
+def test_api_dcserv_basin(enqueue_job_mock, app, create_with_upload,
+                          monkeypatch, ckan_config, tmpdir):
+    monkeypatch.setitem(ckan_config, 'ckan.storage_path', str(tmpdir))
+    monkeypatch.setattr(ckan.lib.uploader,
+                        'get_storage_path',
+                        lambda: str(tmpdir))
+    monkeypatch.setattr(
+        ckanext.dcor_schemas.plugin,
+        'DISABLE_AFTER_DATASET_CREATE_FOR_CONCURRENT_JOB_TESTS',
+        True)
+    user = factories.UserWithToken()
     owner_org = factories.Organization(users=[{
         'name': user['id'],
         'capacity': 'admin'
@@ -289,45 +141,47 @@ def test_api_dcserv_basin(app, create_with_upload, tmp_path):
                       'api_version': 3}
     # create a dataset
     path_orig = data_path / "calibration_beads_47.rtdc"
-    path_test = tmp_path / "calibration_beads_47_test.rtdc"
+    path_test = pathlib.Path(tmpdir) / "calibration_beads_47_test.rtdc"
     shutil.copy2(path_orig, path_test)
     with dclab.RTDCWriter(path_test) as hw:
         hw.store_basin(basin_name="example basin",
-                       basin_type="file",
-                       basin_format="hdf5",
-                       basin_locs=[path_orig],
+                       basin_type="remote",
+                       basin_format="http",
+                       basin_locs=["http://example.org/peter/pan.rtdc"],
                        basin_descr="an example test basin",
+                       verify=False,  # does not exist
                        )
 
-    dataset, res = make_dataset(
+    ds_dict, res_dict = make_dataset(
         create_context, owner_org,
         create_with_upload=create_with_upload,
         resource_path=path_test,
-        activate=True)
-
-    # taken from ckanext/example_iapitoken/tests/test_plugin.py
-    data = helpers.call_action(
-        u"api_token_create",
-        context={u"model": model, u"user": user[u"name"]},
-        user=user[u"name"],
-        name=u"token-name",
+        activate=True,
+        private=False,
     )
 
     resp = app.get(
         "/api/3/action/dcserv",
-        params={"id": res["id"],
+        params={"id": res_dict["id"],
                 "query": "basins",
                 },
-        headers={u"authorization": data["token"]},
+        headers={u"authorization": user["token"]},
         status=200
-        )
+    )
+
     jres = json.loads(resp.body)
     assert jres["success"]
-    basin = jres["result"][0]
-    assert basin["name"] == "example basin"
-    assert basin["type"] == "file"
-    assert basin["format"] == "hdf5"
-    assert basin["description"] == "an example test basin"
+    # Fetch the http resource basin
+    for bn_dict in jres["result"]:
+        if bn_dict["name"] == "resource":
+            break
+
+    with fmt_http.RTDC_HTTP(bn_dict["urls"][0]) as ds:
+        basin = ds.basins[0].as_dict()
+        assert basin["basin_name"] == "example basin"
+        assert basin["basin_type"] == "remote"
+        assert basin["basin_format"] == "http"
+        assert basin["basin_descr"] == "an example test basin"
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_depot dcor_schemas dc_serve')
@@ -345,11 +199,7 @@ def test_api_dcserv_basin_v2(enqueue_job_mock, app, create_with_upload,
         'DISABLE_AFTER_DATASET_CREATE_FOR_CONCURRENT_JOB_TESTS',
         True)
 
-    user = factories.User()
-    owner_org = factories.Organization(users=[{
-        'name': user['id'],
-        'capacity': 'admin'
-    }])
+    user = factories.UserWithToken()
     user_obj = ckan.model.User.by_name(user["name"])
     monkeypatch.setattr(ckan.common,
                         'current_user',
@@ -359,13 +209,13 @@ def test_api_dcserv_basin_v2(enqueue_job_mock, app, create_with_upload,
                       'user': user['name'],
                       'api_version': 3}
 
-    dataset, res = make_dataset(
-        copy.deepcopy(create_context), owner_org,
+    _, res_dict = make_dataset(
+        copy.deepcopy(create_context),
         create_with_upload=create_with_upload,
         resource_path=data_path / "calibration_beads_47.rtdc",
         activate=True)
 
-    s3_url = res["s3_url"]
+    s3_url = res_dict["s3_url"]
 
     # create a dataset
     path_orig = data_path / "calibration_beads_47.rtdc"
@@ -382,7 +232,7 @@ def test_api_dcserv_basin_v2(enqueue_job_mock, app, create_with_upload,
                        basin_format="s3",
                        basin_locs=[s3_url],
                        basin_descr="an example test basin",
-                       verify=False,  # we don't have s3fs installed
+                       verify=True,
                        )
         del hw.h5file["events/deform"]
 
@@ -390,44 +240,22 @@ def test_api_dcserv_basin_v2(enqueue_job_mock, app, create_with_upload,
         # sanity check
         assert "deform" not in h5["events"]
 
-    dataset, res = make_dataset(
-        copy.deepcopy(create_context), owner_org,
+    ds_dict, res_dict = make_dataset(
+        copy.deepcopy(create_context),
         create_with_upload=create_with_upload,
         resource_path=path_test,
         activate=True)
 
-    # taken from ckanext/example_iapitoken/tests/test_plugin.py
-    data = helpers.call_action(
-        u"api_token_create",
-        context={u"model": model, u"user": user[u"name"]},
-        user=user[u"name"],
-        name=u"token-name",
-    )
-
-    # Version 1 API does serve all features
-    resp = app.get(
-        "/api/3/action/dcserv",
-        params={"id": res["id"],
-                "query": "feature_list",
-                "version": "1",
-                },
-        headers={u"authorization": data["token"]},
-        status=200
-        )
-    jres = json.loads(resp.body)
-    assert jres["success"]
-    assert len(jres["result"]) == 37
-
     # Version 2 API does not serve any features
     resp = app.get(
         "/api/3/action/dcserv",
-        params={"id": res["id"],
+        params={"id": res_dict["id"],
                 "query": "feature_list",
                 "version": "2",
                 },
-        headers={u"authorization": data["token"]},
+        headers={u"authorization": user["token"]},
         status=200
-        )
+    )
     jres = json.loads(resp.body)
     assert jres["success"]
     assert len(jres["result"]) == 0
@@ -435,27 +263,27 @@ def test_api_dcserv_basin_v2(enqueue_job_mock, app, create_with_upload,
     # Version 2 API does not serve any features
     resp = app.get(
         "/api/3/action/dcserv",
-        params={"id": res["id"],
+        params={"id": res_dict["id"],
                 "query": "feature",
                 "feature": "area_um",
                 "version": "2",
                 },
-        headers={u"authorization": data["token"]},
+        headers={u"authorization": user["token"]},
         status=409  # ValidationError
-        )
+    )
     jres = json.loads(resp.body)
     assert not jres["success"]
 
     # Version two API serves basins
     resp = app.get(
         "/api/3/action/dcserv",
-        params={"id": res["id"],
+        params={"id": res_dict["id"],
                 "query": "basins",
                 "version": "2",
                 },
-        headers={u"authorization": data["token"]},
+        headers={u"authorization": user["token"]},
         status=200
-        )
+    )
     jres = json.loads(resp.body)
     assert jres["success"]
 
@@ -472,8 +300,20 @@ def test_api_dcserv_basin_v2(enqueue_job_mock, app, create_with_upload,
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
 @pytest.mark.usefixtures('clean_db', 'with_request_context')
-def test_api_dcserv_feature(app, create_with_upload):
-    user = factories.User()
+@mock.patch('ckan.plugins.toolkit.enqueue_job',
+            side_effect=synchronous_enqueue_job)
+def test_api_dcserv_feature_list(enqueue_job_mock, app, ckan_config,
+                                 create_with_upload, monkeypatch, tmpdir):
+    monkeypatch.setitem(ckan_config, 'ckan.storage_path', str(tmpdir))
+    monkeypatch.setattr(ckan.lib.uploader,
+                        'get_storage_path',
+                        lambda: str(tmpdir))
+    monkeypatch.setattr(
+        ckanext.dcor_schemas.plugin,
+        'DISABLE_AFTER_DATASET_CREATE_FOR_CONCURRENT_JOB_TESTS',
+        True)
+
+    user = factories.UserWithToken()
     owner_org = factories.Organization(users=[{
         'name': user['id'],
         'capacity': 'admin'
@@ -482,76 +322,41 @@ def test_api_dcserv_feature(app, create_with_upload):
     create_context = {'ignore_auth': False,
                       'user': user['name'], 'api_version': 3}
     # create a dataset
-    dataset, res = make_dataset(
+    ds_dict, res_dict = make_dataset(
         create_context, owner_org,
         create_with_upload=create_with_upload,
         resource_path=data_path / "calibration_beads_47.rtdc",
         activate=True)
-    # taken from ckanext/example_iapitoken/tests/test_plugin.py
-    data = helpers.call_action(
-        u"api_token_create",
-        context={u"model": model, u"user": user[u"name"]},
-        user=user[u"name"],
-        name=u"token-name",
-    )
 
     resp = app.get(
         "/api/3/action/dcserv",
-        params={"id": res["id"],
-                "query": "feature",
-                "feature": "deform",
-                },
-        headers={u"authorization": data["token"]},
-        status=200
-        )
-    jres = json.loads(resp.body)
-    assert jres["success"]
-    with dclab.new_dataset(data_path / "calibration_beads_47.rtdc") as ds:
-        assert np.allclose(ds["deform"], jres["result"])
-
-
-@pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db', 'with_request_context')
-def test_api_dcserv_feature_list(app, create_with_upload):
-    user = factories.User()
-    owner_org = factories.Organization(users=[{
-        'name': user['id'],
-        'capacity': 'admin'
-    }])
-    # Note: `call_action` bypasses authorization!
-    create_context = {'ignore_auth': False,
-                      'user': user['name'], 'api_version': 3}
-    # create a dataset
-    dataset, res = make_dataset(
-        create_context, owner_org,
-        create_with_upload=create_with_upload,
-        resource_path=data_path / "calibration_beads_47.rtdc",
-        activate=True)
-    # taken from ckanext/example_iapitoken/tests/test_plugin.py
-    data = helpers.call_action(
-        u"api_token_create",
-        context={u"model": model, u"user": user[u"name"]},
-        user=user[u"name"],
-        name=u"token-name",
-    )
-
-    resp = app.get(
-        "/api/3/action/dcserv",
-        params={"id": res["id"],
+        params={"id": res_dict["id"],
                 "query": "feature_list",
                 },
-        headers={u"authorization": data["token"]},
+        headers={u"authorization": user["token"]},
         status=200
-        )
+    )
     jres = json.loads(resp.body)
     assert jres["success"]
-    assert "deform" in jres["result"]
+    assert len(jres["result"]) == 0, "deprecated"
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
 @pytest.mark.usefixtures('clean_db', 'with_request_context')
-def test_api_dcserv_feature_trace(app, create_with_upload):
-    user = factories.User()
+@mock.patch('ckan.plugins.toolkit.enqueue_job',
+            side_effect=synchronous_enqueue_job)
+def test_api_dcserv_logs(enqueue_job_mock, app, ckan_config,
+                         create_with_upload, monkeypatch, tmpdir):
+    monkeypatch.setitem(ckan_config, 'ckan.storage_path', str(tmpdir))
+    monkeypatch.setattr(ckan.lib.uploader,
+                        'get_storage_path',
+                        lambda: str(tmpdir))
+    monkeypatch.setattr(
+        ckanext.dcor_schemas.plugin,
+        'DISABLE_AFTER_DATASET_CREATE_FOR_CONCURRENT_JOB_TESTS',
+        True)
+
+    user = factories.UserWithToken()
     owner_org = factories.Organization(users=[{
         'name': user['id'],
         'capacity': 'admin'
@@ -560,69 +365,20 @@ def test_api_dcserv_feature_trace(app, create_with_upload):
     create_context = {'ignore_auth': False,
                       'user': user['name'], 'api_version': 3}
     # create a dataset
-    dataset, res = make_dataset(
+    ds_dict, res_dict = make_dataset(
         create_context, owner_org,
         create_with_upload=create_with_upload,
         resource_path=data_path / "calibration_beads_47.rtdc",
         activate=True)
-    # taken from ckanext/example_iapitoken/tests/test_plugin.py
-    data = helpers.call_action(
-        u"api_token_create",
-        context={u"model": model, u"user": user[u"name"]},
-        user=user[u"name"],
-        name=u"token-name",
-    )
 
     resp = app.get(
         "/api/3/action/dcserv",
-        params={"id": res["id"],
-                "query": "feature",
-                "feature": "trace",
-                "trace": "fl1_raw",
-                "event": 1,
-                },
-        headers={u"authorization": data["token"]},
-        status=200
-        )
-    jres = json.loads(resp.body)
-    assert jres["success"]
-    with dclab.new_dataset(data_path / "calibration_beads_47.rtdc") as ds:
-        assert np.allclose(ds["trace"]["fl1_raw"][1], jres["result"])
-
-
-@pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db', 'with_request_context')
-def test_api_dcserv_logs(app, create_with_upload):
-    user = factories.User()
-    owner_org = factories.Organization(users=[{
-        'name': user['id'],
-        'capacity': 'admin'
-    }])
-    # Note: `call_action` bypasses authorization!
-    create_context = {'ignore_auth': False,
-                      'user': user['name'], 'api_version': 3}
-    # create a dataset
-    dataset, res = make_dataset(
-        create_context, owner_org,
-        create_with_upload=create_with_upload,
-        resource_path=data_path / "calibration_beads_47.rtdc",
-        activate=True)
-    # taken from ckanext/example_iapitoken/tests/test_plugin.py
-    data = helpers.call_action(
-        u"api_token_create",
-        context={u"model": model, u"user": user[u"name"]},
-        user=user[u"name"],
-        name=u"token-name",
-    )
-
-    resp = app.get(
-        "/api/3/action/dcserv",
-        params={"id": res["id"],
+        params={"id": res_dict["id"],
                 "query": "logs",
                 },
-        headers={u"authorization": data["token"]},
+        headers={u"authorization": user["token"]},
         status=200
-        )
+    )
     jres = json.loads(resp.body)
     assert jres["success"]
     assert jres["result"]["hans"][0] == "peter"
@@ -643,7 +399,7 @@ def test_api_dcserv_metadata(enqueue_job_mock, app, create_with_upload,
         'DISABLE_AFTER_DATASET_CREATE_FOR_CONCURRENT_JOB_TESTS',
         True)
 
-    user = factories.User()
+    user = factories.UserWithToken()
     owner_org = factories.Organization(users=[{
         'name': user['id'],
         'capacity': 'admin'
@@ -653,36 +409,41 @@ def test_api_dcserv_metadata(enqueue_job_mock, app, create_with_upload,
                       'user': user['name'],
                       'api_version': 3}
     # create a dataset
-    dataset, res = make_dataset(
+    ds_dict, res_dict = make_dataset(
         create_context, owner_org,
         create_with_upload=create_with_upload,
         resource_path=data_path / "calibration_beads_47.rtdc",
         activate=True)
-    # taken from ckanext/example_iapitoken/tests/test_plugin.py
-    data = helpers.call_action(
-        u"api_token_create",
-        context={u"model": model, u"user": user[u"name"]},
-        user=user[u"name"],
-        name=u"token-name",
-    )
 
     resp = app.get(
         "/api/3/action/dcserv",
-        params={"id": res["id"],
+        params={"id": res_dict["id"],
                 "query": "metadata",
                 },
-        headers={u"authorization": data["token"]},
+        headers={u"authorization": user["token"]},
         status=200
-        )
+    )
     jres = json.loads(resp.body)
     assert jres["success"]
     assert jres["result"]["setup"]["channel width"] == 20
 
 
-@pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
+@pytest.mark.ckan_config('ckan.plugins', 'dcor_depot dcor_schemas dc_serve')
 @pytest.mark.usefixtures('clean_db', 'with_request_context')
-def test_api_dcserv_size(app, create_with_upload):
-    user = factories.User()
+@mock.patch('ckan.plugins.toolkit.enqueue_job',
+            side_effect=synchronous_enqueue_job)
+def test_api_dcserv_size(enqueue_job_mock, app, create_with_upload,
+                         monkeypatch, ckan_config, tmpdir):
+    monkeypatch.setitem(ckan_config, 'ckan.storage_path', str(tmpdir))
+    monkeypatch.setattr(ckan.lib.uploader,
+                        'get_storage_path',
+                        lambda: str(tmpdir))
+    monkeypatch.setattr(
+        ckanext.dcor_schemas.plugin,
+        'DISABLE_AFTER_DATASET_CREATE_FOR_CONCURRENT_JOB_TESTS',
+        True)
+
+    user = factories.UserWithToken()
     owner_org = factories.Organization(users=[{
         'name': user['id'],
         'capacity': 'admin'
@@ -691,27 +452,20 @@ def test_api_dcserv_size(app, create_with_upload):
     create_context = {'ignore_auth': False,
                       'user': user['name'], 'api_version': 3}
     # create a dataset
-    dataset, res = make_dataset(
+    ds_dict, res_dict = make_dataset(
         create_context, owner_org,
         create_with_upload=create_with_upload,
         resource_path=data_path / "calibration_beads_47.rtdc",
         activate=True)
-    # taken from ckanext/example_iapitoken/tests/test_plugin.py
-    data = helpers.call_action(
-        u"api_token_create",
-        context={u"model": model, u"user": user[u"name"]},
-        user=user[u"name"],
-        name=u"token-name",
-    )
 
     resp = app.get(
         "/api/3/action/dcserv",
-        params={"id": res["id"],
+        params={"id": res_dict["id"],
                 "query": "size",
                 },
-        headers={u"authorization": data["token"]},
+        headers={u"authorization": user["token"]},
         status=200
-        )
+    )
     jres = json.loads(resp.body)
     assert jres["success"]
     with dclab.new_dataset(data_path / "calibration_beads_47.rtdc") as ds:
@@ -720,8 +474,20 @@ def test_api_dcserv_size(app, create_with_upload):
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
 @pytest.mark.usefixtures('clean_db', 'with_request_context')
-def test_api_dcserv_tables(app, create_with_upload):
-    user = factories.User()
+@mock.patch('ckan.plugins.toolkit.enqueue_job',
+            side_effect=synchronous_enqueue_job)
+def test_api_dcserv_tables(enqueue_job_mock, app, create_with_upload,
+                           monkeypatch, ckan_config, tmpdir):
+    monkeypatch.setitem(ckan_config, 'ckan.storage_path', str(tmpdir))
+    monkeypatch.setattr(ckan.lib.uploader,
+                        'get_storage_path',
+                        lambda: str(tmpdir))
+    monkeypatch.setattr(
+        ckanext.dcor_schemas.plugin,
+        'DISABLE_AFTER_DATASET_CREATE_FOR_CONCURRENT_JOB_TESTS',
+        True)
+
+    user = factories.UserWithToken()
     owner_org = factories.Organization(users=[{
         'name': user['id'],
         'capacity': 'admin'
@@ -730,27 +496,20 @@ def test_api_dcserv_tables(app, create_with_upload):
     create_context = {'ignore_auth': False,
                       'user': user['name'], 'api_version': 3}
     # create a dataset
-    dataset, res = make_dataset(
+    ds_dict, res_dict = make_dataset(
         create_context, owner_org,
         create_with_upload=create_with_upload,
         resource_path=data_path / "cytoshot_blood.rtdc",
         activate=True)
-    # taken from ckanext/example_iapitoken/tests/test_plugin.py
-    data = helpers.call_action(
-        u"api_token_create",
-        context={u"model": model, u"user": user[u"name"]},
-        user=user[u"name"],
-        name=u"token-name",
-    )
 
     resp = app.get(
         "/api/3/action/dcserv",
-        params={"id": res["id"],
+        params={"id": res_dict["id"],
                 "query": "tables",
                 },
-        headers={u"authorization": data["token"]},
+        headers={u"authorization": user["token"]},
         status=200
-        )
+    )
     jres = json.loads(resp.body)
     assert jres["success"]
     assert "src_cytoshot_monitor" in jres["result"]
@@ -758,10 +517,22 @@ def test_api_dcserv_tables(app, create_with_upload):
     assert "brightness" in names
 
 
-@pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
+@pytest.mark.ckan_config('ckan.plugins', 'dcor_depot dcor_schemas dc_serve')
 @pytest.mark.usefixtures('clean_db', 'with_request_context')
-def test_api_dcserv_trace_list(app, create_with_upload):
-    user = factories.User()
+@mock.patch('ckan.plugins.toolkit.enqueue_job',
+            side_effect=synchronous_enqueue_job)
+def test_api_dcserv_trace_list(enqueue_job_mock, app, create_with_upload,
+                               monkeypatch, ckan_config, tmpdir):
+    monkeypatch.setitem(ckan_config, 'ckan.storage_path', str(tmpdir))
+    monkeypatch.setattr(ckan.lib.uploader,
+                        'get_storage_path',
+                        lambda: str(tmpdir))
+    monkeypatch.setattr(
+        ckanext.dcor_schemas.plugin,
+        'DISABLE_AFTER_DATASET_CREATE_FOR_CONCURRENT_JOB_TESTS',
+        True)
+
+    user = factories.UserWithToken()
     owner_org = factories.Organization(users=[{
         'name': user['id'],
         'capacity': 'admin'
@@ -770,27 +541,20 @@ def test_api_dcserv_trace_list(app, create_with_upload):
     create_context = {'ignore_auth': False,
                       'user': user['name'], 'api_version': 3}
     # create a dataset
-    dataset, res = make_dataset(
+    _, res_dict = make_dataset(
         create_context, owner_org,
         create_with_upload=create_with_upload,
         resource_path=data_path / "calibration_beads_47.rtdc",
         activate=True)
-    # taken from ckanext/example_iapitoken/tests/test_plugin.py
-    data = helpers.call_action(
-        u"api_token_create",
-        context={u"model": model, u"user": user[u"name"]},
-        user=user[u"name"],
-        name=u"token-name",
-    )
 
     resp = app.get(
         "/api/3/action/dcserv",
-        params={"id": res["id"],
+        params={"id": res_dict["id"],
                 "query": "trace_list",
                 },
-        headers={u"authorization": data["token"]},
+        headers={u"authorization": user["token"]},
         status=200
-        )
+    )
     jres = json.loads(resp.body)
     assert jres["success"]
     with dclab.new_dataset(data_path / "calibration_beads_47.rtdc") as ds:
@@ -798,10 +562,22 @@ def test_api_dcserv_trace_list(app, create_with_upload):
             assert key in jres["result"]
 
 
-@pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
+@pytest.mark.ckan_config('ckan.plugins', 'dcor_depot dcor_schemas dc_serve')
 @pytest.mark.usefixtures('clean_db', 'with_request_context')
-def test_api_dcserv_valid(app, create_with_upload):
-    user = factories.User()
+@mock.patch('ckan.plugins.toolkit.enqueue_job',
+            side_effect=synchronous_enqueue_job)
+def test_api_dcserv_valid(enqueue_job_mock, app, create_with_upload,
+                          monkeypatch, ckan_config, tmpdir):
+    monkeypatch.setitem(ckan_config, 'ckan.storage_path', str(tmpdir))
+    monkeypatch.setattr(ckan.lib.uploader,
+                        'get_storage_path',
+                        lambda: str(tmpdir))
+    monkeypatch.setattr(
+        ckanext.dcor_schemas.plugin,
+        'DISABLE_AFTER_DATASET_CREATE_FOR_CONCURRENT_JOB_TESTS',
+        True)
+
+    user = factories.UserWithToken()
     owner_org = factories.Organization(users=[{
         'name': user['id'],
         'capacity': 'admin'
@@ -810,27 +586,20 @@ def test_api_dcserv_valid(app, create_with_upload):
     create_context = {'ignore_auth': False,
                       'user': user['name'], 'api_version': 3}
     # create a dataset
-    dataset, res = make_dataset(
+    _, res_dict = make_dataset(
         create_context, owner_org,
         create_with_upload=create_with_upload,
         resource_path=data_path / "calibration_beads_47.rtdc",
         activate=True)
-    # taken from ckanext/example_iapitoken/tests/test_plugin.py
-    data = helpers.call_action(
-        u"api_token_create",
-        context={u"model": model, u"user": user[u"name"]},
-        user=user[u"name"],
-        name=u"token-name",
-    )
 
     resp = app.get(
         "/api/3/action/dcserv",
-        params={"id": res["id"],
+        params={"id": res_dict["id"],
                 "query": "valid",
                 },
-        headers={u"authorization": data["token"]},
+        headers={u"authorization": user["token"]},
         status=200
-        )
+    )
     jres = json.loads(resp.body)
     assert jres["success"]
     assert jres["result"]

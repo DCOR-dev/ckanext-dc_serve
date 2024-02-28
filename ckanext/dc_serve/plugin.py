@@ -7,10 +7,9 @@ from rq.job import Job
 
 from .cli import get_commands
 from . import helpers as dcor_helpers
-from .jobs import generate_condensed_resource_job, migrate_condensed_to_s3_job
+from .jobs import generate_condensed_resource_job
 from .route_funcs import dccondense, dcresource
 from .serve import dcserv
-
 
 from dcor_shared import DC_MIME_TYPES, s3
 
@@ -56,7 +55,7 @@ class DCServePlugin(plugins.SingletonPlugin):
     # IResourceController
     def after_resource_create(self, context, resource):
         """Generate condensed dataset"""
-        if resource.get('mimetype') in DC_MIME_TYPES:
+        if resource.get('mimetype') in DC_MIME_TYPES and s3.is_available():
             # Generate the condensed dataset
             pkg_job_id = f"{resource['package_id']}_{resource['position']}_"
             jid_condense = pkg_job_id + "condense"
@@ -64,28 +63,12 @@ class DCServePlugin(plugins.SingletonPlugin):
             if not Job.exists(jid_condense, connection=ckan_redis_connect()):
                 toolkit.enqueue_job(generate_condensed_resource_job,
                                     [resource],
-                                    title="Create condensed dataset",
+                                    title="Create condensed dataset and "
+                                          "upload it to S3",
                                     queue="dcor-long",
                                     rq_kwargs={"timeout": 3600,
                                                "job_id": jid_condense,
                                                "depends_on": [jid_symlink]})
-
-            # Upload the condensed dataset to S3
-            if s3.is_available():
-                jid_condensed_s3 = pkg_job_id + "condenseds3"
-                toolkit.enqueue_job(
-                    migrate_condensed_to_s3_job,
-                    [resource],
-                    title="Migrate condensed resource to S3 object store",
-                    queue="dcor-normal",
-                    rq_kwargs={"timeout": 1000,
-                               "job_id": jid_condensed_s3,
-                               "depends_on": [
-                                   # symlink is general requirement
-                                   jid_symlink,
-                                   jid_condense,
-                               ]}
-                    )
 
     # IActions
     def get_actions(self):
@@ -100,5 +83,5 @@ class DCServePlugin(plugins.SingletonPlugin):
         hlps = {
             'dc_serve_resource_has_condensed':
                 dcor_helpers.resource_has_condensed,
-            }
+        }
         return hlps

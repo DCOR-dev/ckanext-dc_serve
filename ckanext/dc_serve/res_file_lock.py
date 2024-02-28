@@ -13,6 +13,7 @@ class CKANResourceFileLock:
     the `is_locked` property to make sure that you have actually
     acquired a lock.
     """
+
     def __init__(self, resource_id, locker_id="CKAN_resource_lock"):
         """
 

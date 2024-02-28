@@ -42,7 +42,7 @@ setup(
     namespace_packages=['ckanext'],
     install_requires=[
         # the "ckan" dependency is implied
-        "dclab[http]>=0.56.0",
+        "dclab[http]>=0.57.7",
         "dcor_shared>=0.8.0",
     ],
     include_package_data=True,

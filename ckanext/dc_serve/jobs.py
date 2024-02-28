@@ -1,8 +1,12 @@
+import pathlib
+import tempfile
+import warnings
+
 import ckan.plugins.toolkit as toolkit
 from dclab import RTDCWriter
-from dclab.cli import condense
+from dclab.cli import condense_dataset
 from dcor_shared import (
-    DC_MIME_TYPES, s3, sha256sum, get_ckan_config_option, get_resource_path,
+    DC_MIME_TYPES, get_dc_instance, s3cc, get_ckan_config_option,
     wait_for_resource)
 import h5py
 
@@ -15,13 +19,19 @@ def admin_context():
 
 def generate_condensed_resource_job(resource, override=False):
     """Generates a condensed version of the dataset"""
-    path = get_resource_path(resource["id"])
-    if resource["mimetype"] in DC_MIME_TYPES:
-        wait_for_resource(resource["id"])
-        cond = path.with_name(path.name + "_condensed.rtdc")
-        if not cond.exists() or override:
+    rid = resource["id"]
+    wait_for_resource(rid)
+    mtype = resource.get('mimetype', '')
+    if (mtype in DC_MIME_TYPES
+        # Check whether the file already exists on S3
+        and (override
+             or not s3cc.artifact_exists(resource_id=rid,
+                                         artifact="condensed"))):
+        # Create the condensed file in a temporary location
+        with tempfile.TemporaryDirectory() as ttd_name:
+            path_cond = pathlib.Path(ttd_name) / "condensed.rtdc"
             with CKANResourceFileLock(
-                    resource_id=resource["id"],
+                    resource_id=rid,
                     locker_id="DCOR_generate_condensed") as fl:
                 # The CKANResourceFileLock creates a lock file if not present
                 # and then sets `is_locked` to True if the lock was acquired.
@@ -33,20 +43,26 @@ def generate_condensed_resource_job(resource, override=False):
                 # then several processes would end up condensing the same
                 # resource.
                 if fl.is_locked:
-                    # Condense the dataset
-                    condense(path_out=cond,
-                             path_in=path,
-                             ancillaries=True,
-                             check_suffix=False)
-                    # Determine the features that are not in the condensed
-                    # dataset.
-                    with h5py.File(path) as hsrc, h5py.File(cond) as hdst:
-                        feats_src = set(hsrc["events"].keys())
-                        feats_dst = set(hdst["events"].keys())
-                    feats_upstream = sorted(feats_src - feats_dst)
+                    with get_dc_instance(rid) as ds, \
+                            h5py.File(path_cond, "w") as h5_cond:
+                        # Condense the dataset (do not store any warning
+                        # messages during instantiation, because we are
+                        # scared of leaking credentials).
+                        with warnings.catch_warnings(record=True) as w:
+                            warnings.simplefilter("always")
+                            condense_dataset(ds=ds,
+                                             h5_cond=h5_cond,
+                                             ancillaries=True,
+                                             warnings_list=w)
+
+                        # Determine the features that are not in the condensed
+                        # dataset.
+                        feats_src = set(ds.h5file["events"].keys())
+                        feats_dst = set(h5_cond["events"].keys())
+                        feats_upstream = sorted(feats_src - feats_dst)
 
                     # Write DCOR basins
-                    with RTDCWriter(cond) as hw:
+                    with RTDCWriter(path_cond) as hw:
                         # DCOR
                         site_url = get_ckan_config_option("ckan.site_url")
                         rid = resource["id"]
@@ -87,28 +103,11 @@ def generate_condensed_resource_job(resource, override=False):
                             basin_descr="Public resource access via HTTP",
                             basin_feats=feats_upstream,
                             verify=False)
+
+                    # Upload the condensed file to S3
+                    s3cc.upload_artifact(resource_id=rid,
+                                         path_artifact=path_cond,
+                                         artifact="condensed",
+                                         override=True)
                     return True
     return False
-
-
-def migrate_condensed_to_s3_job(resource):
-    """Migrate a condensed resource to the S3 object store"""
-    path = get_resource_path(resource["id"])
-    path_cond = path.with_name(path.name + "_condensed.rtdc")
-    ds_dict = toolkit.get_action('package_show')(
-        admin_context(),
-        {'id': resource["package_id"]})
-    # Perform the upload
-    bucket_name = get_ckan_config_option(
-        "dcor_object_store.bucket_name").format(
-        organization_id=ds_dict["organization"]["id"])
-    rid = resource["id"]
-    sha256 = sha256sum(path_cond)
-    s3.upload_file(
-        bucket_name=bucket_name,
-        object_name=f"condensed/{rid[:3]}/{rid[3:6]}/{rid[6:]}",
-        path=path_cond,
-        sha256=sha256,
-        private=ds_dict["private"],
-        override=False)
-    # TODO: delete the local resource after successful upload?

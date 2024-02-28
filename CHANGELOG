@@ -1,5 +1,7 @@
 0.15.0
+ - BREAKING: drop support for DCOR API version "1"
  - ref: migrate to dcor_shared 0.8.0
+ - ref: upload condensed datasets directly to S3 (no copy on block storage)
 0.14.1
  - maintenance release
 0.14.0
