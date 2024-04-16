@@ -1,3 +1,5 @@
+0.15.1
+ - fix: add ckanext.dc_serve.tmp_dir for temporary condense location
 0.15.0
  - BREAKING: drop support for DCOR API version "1"
  - ref: migrate to dcor_shared 0.8.0

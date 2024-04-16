@@ -27,8 +27,13 @@ def generate_condensed_resource_job(resource, override=False):
         and (override
              or not s3cc.artifact_exists(resource_id=rid,
                                          artifact="condensed"))):
-        # Create the condensed file in a temporary location
-        with tempfile.TemporaryDirectory() as ttd_name:
+        # Create the condensed file in a cache location
+        cache_loc = get_ckan_config_option("ckanext.dc_serve.tmp_dir")
+        if not cache_loc:
+            cache_loc = None  # probably defaults to /tmp in TemporaryDirectory
+
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True,
+                                         dir=cache_loc) as ttd_name:
             path_cond = pathlib.Path(ttd_name) / "condensed.rtdc"
             with CKANResourceFileLock(
                     resource_id=rid,

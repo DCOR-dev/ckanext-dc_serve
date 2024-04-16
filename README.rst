@@ -13,7 +13,9 @@ This plugin implements:
 - A background job that generates a condensed dataset after a resource
   has been created.
 - A background job that uploads the condensed dataset to the S3 object
-  store.
+  store. The temporary location of the condensed dataset that is created
+  can be set by setting the `ckanext.dc_serve.tmp_dir` configuration
+  option.
 - A route that makes the condensed dataset available via
   "/dataset/{id}/resource/{resource_id}/condensed.rtdc"
   (S3 object store data is made available via a redirect)
