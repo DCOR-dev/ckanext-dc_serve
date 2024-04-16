@@ -32,8 +32,7 @@ def generate_condensed_resource_job(resource, override=False):
         if not cache_loc:
             cache_loc = None  # probably defaults to /tmp in TemporaryDirectory
 
-        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True,
-                                         dir=cache_loc) as ttd_name:
+        with tempfile.TemporaryDirectory(dir=cache_loc) as ttd_name:
             path_cond = pathlib.Path(ttd_name) / "condensed.rtdc"
             with CKANResourceFileLock(
                     resource_id=rid,
