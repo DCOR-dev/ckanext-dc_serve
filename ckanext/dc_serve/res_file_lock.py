@@ -24,7 +24,7 @@ class CKANResourceFileLock:
         locker_id: str
             Custom ID to use for the lock. The default is the
         """
-        temploc = pathlib.Path(tempfile.tempdir) / locker_id
+        temploc = pathlib.Path(tempfile.gettempdir()) / locker_id
         temploc.mkdir(parents=True, exist_ok=True)
 
         self.resource_id = resource_id

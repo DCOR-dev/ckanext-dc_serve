@@ -30,7 +30,7 @@ def generate_condensed_resource_job(resource, override=False):
         # Create the condensed file in a cache location
         cache_loc = get_ckan_config_option("ckanext.dc_serve.tmp_dir")
         if not cache_loc:
-            cache_loc = None  # probably defaults to /tmp in TemporaryDirectory
+            cache_loc = None
         else:
             # Make sure the directory exists and don't panic when we cannot
             # create it.
