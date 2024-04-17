@@ -31,6 +31,13 @@ def generate_condensed_resource_job(resource, override=False):
         cache_loc = get_ckan_config_option("ckanext.dc_serve.tmp_dir")
         if not cache_loc:
             cache_loc = None  # probably defaults to /tmp in TemporaryDirectory
+        else:
+            # Make sure the directory exists and don't panic when we cannot
+            # create it.
+            try:
+                pathlib.Path(cache_loc).mkdir(parents=True, exist_ok=True)
+            except BaseException:
+                cache_loc = None
 
         with tempfile.TemporaryDirectory(dir=cache_loc) as ttd_name:
             path_cond = pathlib.Path(ttd_name) / "condensed.rtdc"
