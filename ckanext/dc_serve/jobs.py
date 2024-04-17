@@ -39,8 +39,13 @@ def generate_condensed_resource_job(resource, override=False):
             except BaseException:
                 cache_loc = None
 
-        with tempfile.TemporaryDirectory(dir=cache_loc) as ttd_name:
-            path_cond = pathlib.Path(ttd_name) / "condensed.rtdc"
+        if cache_loc is None:
+            cache_loc = tempfile.mkdtemp(prefix="ckanext-dc_serve_")
+
+        cache_loc = pathlib.Path(cache_loc)
+        path_cond = cache_loc / f"{rid}_condensed.rtdc"
+
+        try:
             with CKANResourceFileLock(
                     resource_id=rid,
                     locker_id="DCOR_generate_condensed") as fl:
@@ -121,4 +126,8 @@ def generate_condensed_resource_job(resource, override=False):
                                          artifact="condensed",
                                          override=True)
                     return True
+        except BaseException:
+            pass
+        finally:
+            path_cond.unlink(missing_ok=True)
     return False
