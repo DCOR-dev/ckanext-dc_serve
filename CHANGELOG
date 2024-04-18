@@ -1,5 +1,6 @@
 0.15.3
  - fix: do not use unreliable tempfile.TemporaryDirectory
+ - setup: bump dclab to 0.58.3 (LazyContourList has max_events)
 0.15.2
  - fix: attempt to create temporary condense location if not exists
 0.15.1
