@@ -1,5 +1,7 @@
+import logging
 import pathlib
 import tempfile
+import traceback
 import warnings
 
 import ckan.plugins.toolkit as toolkit
@@ -13,6 +15,9 @@ import h5py
 from .res_file_lock import CKANResourceFileLock
 
 
+log = logging.getLogger(__name__)
+
+
 def admin_context():
     return {'ignore_auth': True, 'user': 'default'}
 
@@ -20,6 +25,7 @@ def admin_context():
 def generate_condensed_resource_job(resource, override=False):
     """Generates a condensed version of the dataset"""
     rid = resource["id"]
+    log.info(f"Generating condensed resource {rid}")
     wait_for_resource(rid)
     mtype = resource.get('mimetype', '')
     if (mtype in DC_MIME_TYPES
@@ -127,7 +133,7 @@ def generate_condensed_resource_job(resource, override=False):
                                          override=True)
                     return True
         except BaseException:
-            pass
+            log.error(traceback.format_exc())
         finally:
             path_cond.unlink(missing_ok=True)
     return False
