@@ -113,6 +113,8 @@ def dcserv(context, data_dict=None):
             # Return all basins from the condensed file
             # (the S3 basins are already in there).
             with s3cc.get_s3_dc_handle_basin_based(rid) as ds:
+                # The basins just links to the original resource and
+                # condensed file.
                 data = ds.basins_get_dicts()
         elif query == "tables":
             with s3cc.get_s3_dc_handle_basin_based(rid) as ds:
