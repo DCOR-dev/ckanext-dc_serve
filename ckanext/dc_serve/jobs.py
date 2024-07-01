@@ -74,7 +74,8 @@ def generate_condensed_resource_job(resource, override=False):
                             warnings.simplefilter("always")
                             condense_dataset(ds=ds,
                                              h5_cond=h5_cond,
-                                             ancillaries=True,
+                                             store_ancillary_features=True,
+                                             store_basin_features=True,
                                              warnings_list=w)
 
                         # Determine the features that are not in the condensed
