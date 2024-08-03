@@ -40,6 +40,6 @@ coverage.xml
 
 # Sphinx documentation
 docs/_build/
-_version_save.py
+_version.py
 .idea
 .vagrant

@@ -1,3 +1,5 @@
+0.16.0
+ - setup: migrate to pyproject.toml
 0.15.5
  - docs: minor update
  - ref: remove deprecated kwarg from dclab_condense call
