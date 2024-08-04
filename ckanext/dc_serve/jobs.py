@@ -4,12 +4,13 @@ import tempfile
 import traceback
 import warnings
 
+from ckan.common import asbool, config
 import ckan.plugins.toolkit as toolkit
 from dclab import RTDCWriter
 from dclab.cli import condense_dataset
 from dcor_shared import (
-    DC_MIME_TYPES, get_dc_instance, s3cc, get_ckan_config_option,
-    wait_for_resource)
+    DC_MIME_TYPES, get_dc_instance, s3cc, wait_for_resource
+)
 import h5py
 
 from .res_file_lock import CKANResourceFileLock
@@ -24,6 +25,12 @@ def admin_context():
 
 def generate_condensed_resource_job(resource, override=False):
     """Generates a condensed version of the dataset"""
+    # Check whether we should be generating a condensed resource file.
+    if not asbool(config.get(
+            "ckanext.dc_serve.create_condensed_datasets", "true")):
+        log.info("Generating condensed resources disabled via config")
+        return False
+
     rid = resource["id"]
     log.info(f"Generating condensed resource {rid}")
     wait_for_resource(rid)
@@ -34,7 +41,7 @@ def generate_condensed_resource_job(resource, override=False):
              or not s3cc.artifact_exists(resource_id=rid,
                                          artifact="condensed"))):
         # Create the condensed file in a cache location
-        cache_loc = get_ckan_config_option("ckanext.dc_serve.tmp_dir")
+        cache_loc = config.get("ckanext.dc_serve.tmp_dir")
         if not cache_loc:
             cache_loc = None
         else:
@@ -87,7 +94,7 @@ def generate_condensed_resource_job(resource, override=False):
                     # Write DCOR basins
                     with RTDCWriter(path_cond) as hw:
                         # DCOR
-                        site_url = get_ckan_config_option("ckan.site_url")
+                        site_url = config["ckan.site_url"]
                         rid = resource["id"]
                         dcor_url = f"{site_url}/api/3/action/dcserv?id={rid}"
                         hw.store_basin(
@@ -99,13 +106,12 @@ def generate_condensed_resource_job(resource, override=False):
                             basin_feats=feats_upstream,
                             verify=False)
                         # S3
-                        s3_endpoint = get_ckan_config_option(
-                            "dcor_object_store.endpoint_url")
+                        s3_endpoint = config["dcor_object_store.endpoint_url"]
                         ds_dict = toolkit.get_action('package_show')(
                             admin_context(),
                             {'id': resource["package_id"]})
-                        bucket_name = get_ckan_config_option(
-                            "dcor_object_store.bucket_name").format(
+                        bucket_name = config[
+                            "dcor_object_store.bucket_name"].format(
                             organization_id=ds_dict["organization"]["id"])
                         obj_name = f"resource/{rid[:3]}/{rid[3:6]}/{rid[6:]}"
                         s3_url = f"{s3_endpoint}/{bucket_name}/{obj_name}"

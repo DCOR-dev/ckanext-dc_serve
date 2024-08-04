@@ -29,6 +29,17 @@ This plugin implements:
   - add CKAN command `run-jobs-dc-serve` that runs all background
     jobs for all resources (if not already done)
 
+- Configuration keywords:
+
+  - the ``ckanext.dc_serve.create_condensed_datasets`` boolean
+    parameter can be set to False to prevent DCOR from generating condensed
+    resource files
+
+  - ``ckanext.dc_serve.tmp_dir`` specifies the location of a directory
+    used for creating temporary files when condensing datasets; if not
+    specified, a temporary directory is used
+
+
 
 Installation
 ------------

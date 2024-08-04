@@ -78,6 +78,41 @@ def test_create_condensed_dataset_job_upload_s3(
 # We need the dcor_depot extension to make sure that the symbolic-
 # linking pipeline is used.
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_depot dc_serve dcor_schemas')
+@pytest.mark.ckan_config('ckanext.dc_serve.create_condensed_datasets', "false")
+@pytest.mark.usefixtures('clean_db', 'with_request_context')
+@mock.patch('ckan.plugins.toolkit.enqueue_job',
+            side_effect=synchronous_enqueue_job)
+def test_do_not_create_condensed_by_config_dataset_job_upload_s3(
+        enqueue_job_mock, create_with_upload, monkeypatch, ckan_config,
+        tmpdir):
+    monkeypatch.setitem(ckan_config, 'ckan.storage_path', str(tmpdir))
+    monkeypatch.setattr(ckan.lib.uploader,
+                        'get_storage_path',
+                        lambda: str(tmpdir))
+    monkeypatch.setattr(
+        ckanext.dcor_schemas.plugin,
+        'DISABLE_AFTER_DATASET_CREATE_FOR_CONCURRENT_JOB_TESTS',
+        True)
+
+    ds_dict, res_dict = make_dataset(
+        create_with_upload=create_with_upload,
+        resource_path=data_path / "calibration_beads_47.rtdc",
+        activate=True)
+    bucket_name = dcor_shared.get_ckan_config_option(
+        "dcor_object_store.bucket_name").format(
+        organization_id=ds_dict["organization"]["id"])
+    rid = res_dict["id"]
+    object_name = f"condensed/{rid[:3]}/{rid[3:6]}/{rid[6:]}"
+    endpoint = dcor_shared.get_ckan_config_option(
+        "dcor_object_store.endpoint_url")
+    cond_url = f"{endpoint}/{bucket_name}/{object_name}"
+    response = requests.get(cond_url)
+    assert not response.ok, "creating condensed resource should be disabled"
+
+
+# We need the dcor_depot extension to make sure that the symbolic-
+# linking pipeline is used.
+@pytest.mark.ckan_config('ckan.plugins', 'dcor_depot dc_serve dcor_schemas')
 @pytest.mark.usefixtures('clean_db', 'with_request_context')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)

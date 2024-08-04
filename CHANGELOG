@@ -1,4 +1,6 @@
 0.16.0
+ - enh: allow to disable creation of condensed files via config
+ - docs: properly document configuration options
  - setup: migrate to pyproject.toml
 0.15.5
  - docs: minor update

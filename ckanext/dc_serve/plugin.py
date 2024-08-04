@@ -1,3 +1,4 @@
+from ckan import config
 from ckan.lib.jobs import _connect as ckan_redis_connect
 import ckan.plugins as plugins
 import ckan.plugins.toolkit as toolkit
@@ -51,6 +52,24 @@ class DCServePlugin(plugins.SingletonPlugin):
         # Add this plugin's templates dir to CKAN's extra_template_paths, so
         # that CKAN will use this plugin's custom templates.
         toolkit.add_template_directory(config, 'templates')
+
+    # IConfigDeclaration
+    def declare_config_options(
+            self,
+            declaration: config.declaration.Declaration,
+            key: config.declaration.Key):
+
+        dc_serve_group = key.ckanext.dc_serve
+
+        declaration.declare_bool(
+            dc_serve_group.create_condensed_datasets, True).set_description(
+            "generate condensed versions of uploaded .rtdc files"
+        )
+
+        declaration.declare_bool(
+            dc_serve_group.tmp_dir, True).set_description(
+            "temporary directory for creating condensed resource files"
+        )
 
     # IResourceController
     def after_resource_create(self, context, resource):
