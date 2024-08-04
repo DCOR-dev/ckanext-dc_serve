@@ -4,7 +4,7 @@ import tempfile
 import traceback
 import warnings
 
-from ckan.common import asbool, config
+from ckan import common
 import ckan.plugins.toolkit as toolkit
 from dclab import RTDCWriter
 from dclab.cli import condense_dataset
@@ -26,7 +26,7 @@ def admin_context():
 def generate_condensed_resource_job(resource, override=False):
     """Generates a condensed version of the dataset"""
     # Check whether we should be generating a condensed resource file.
-    if not asbool(config.get(
+    if not common.asbool(common.config.get(
             "ckanext.dc_serve.create_condensed_datasets", "true")):
         log.info("Generating condensed resources disabled via config")
         return False
@@ -41,7 +41,7 @@ def generate_condensed_resource_job(resource, override=False):
              or not s3cc.artifact_exists(resource_id=rid,
                                          artifact="condensed"))):
         # Create the condensed file in a cache location
-        cache_loc = config.get("ckanext.dc_serve.tmp_dir")
+        cache_loc = common.config.get("ckanext.dc_serve.tmp_dir")
         if not cache_loc:
             cache_loc = None
         else:
@@ -94,7 +94,7 @@ def generate_condensed_resource_job(resource, override=False):
                     # Write DCOR basins
                     with RTDCWriter(path_cond) as hw:
                         # DCOR
-                        site_url = config["ckan.site_url"]
+                        site_url = common.config["ckan.site_url"]
                         rid = resource["id"]
                         dcor_url = f"{site_url}/api/3/action/dcserv?id={rid}"
                         hw.store_basin(
@@ -106,11 +106,12 @@ def generate_condensed_resource_job(resource, override=False):
                             basin_feats=feats_upstream,
                             verify=False)
                         # S3
-                        s3_endpoint = config["dcor_object_store.endpoint_url"]
+                        s3_endpoint = common.config[
+                            "dcor_object_store.endpoint_url"]
                         ds_dict = toolkit.get_action('package_show')(
                             admin_context(),
                             {'id': resource["package_id"]})
-                        bucket_name = config[
+                        bucket_name = common.config[
                             "dcor_object_store.bucket_name"].format(
                             organization_id=ds_dict["organization"]["id"])
                         obj_name = f"resource/{rid[:3]}/{rid[3:6]}/{rid[6:]}"
