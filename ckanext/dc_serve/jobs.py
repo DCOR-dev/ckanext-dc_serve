@@ -74,6 +74,9 @@ def generate_condensed_resource_job(resource, override=False):
                 if fl.is_locked:
                     with get_dc_instance(rid) as ds, \
                             h5py.File(path_cond, "w") as h5_cond:
+                        # Features available in the input file
+                        feats_src = set(ds.features_innate)
+
                         # Condense the dataset (do not store any warning
                         # messages during instantiation, because we are
                         # scared of leaking credentials).
@@ -85,10 +88,10 @@ def generate_condensed_resource_job(resource, override=False):
                                              store_basin_features=True,
                                              warnings_list=w)
 
-                        # Determine the features that are not in the condensed
-                        # dataset.
-                        feats_src = set(ds.h5file["events"].keys())
+                        # Features available in the condensed file
                         feats_dst = set(h5_cond["events"].keys())
+                        # Features that are in the input, but not in the
+                        # condensed file.
                         feats_upstream = sorted(feats_src - feats_dst)
 
                     # Write DCOR basins

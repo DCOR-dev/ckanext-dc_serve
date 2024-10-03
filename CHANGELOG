@@ -1,3 +1,6 @@
+0.16.3
+ - fix: feature "trace" written to basin feature list although not
+   actually present in the input file
 0.16.2
  - setup: fix ckanext namespace
 0.16.1
