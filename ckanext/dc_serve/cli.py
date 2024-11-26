@@ -1,5 +1,6 @@
 import datetime
 import time
+import traceback
 
 import ckan.model as model
 
@@ -7,12 +8,6 @@ import click
 
 
 from . import jobs
-
-
-def click_echo(message, am_on_a_new_line):
-    if not am_on_a_new_line:
-        click.echo("")
-    click.echo(message)
 
 
 @click.option('--modified-days', default=-1,
@@ -33,23 +28,30 @@ def run_jobs_dc_serve(modified_days=-1):
         past_str = time.strftime("%Y-%m-%d", past.timetuple())
         datasets = datasets.filter(model.Package.metadata_modified >= past_str)
 
+    job_list = jobs.RQJob.get_all_job_methods_in_order(
+        ckanext="dc_serve")
+
     nl = False  # new line character
     for dataset in datasets:
         nl = False
         click.echo(f"Checking dataset {dataset.id}\r", nl=False)
+
         for resource in dataset.resources:
             res_dict = resource.as_dict()
             try:
-                if jobs.generate_condensed_resource_job(res_dict,
-                                                        override=False):
-                    click_echo(
-                        f"Created condensed resource for {resource.name}", nl)
-                    nl = True
+                for job in job_list:
+                    if job.method(res_dict):
+                        if not nl:
+                            click.echo("")
+                            nl = True
+                        click.echo(f"OK: {job.title} for {resource.name}")
             except KeyboardInterrupt:
                 raise
             except BaseException as e:
-                click_echo(
-                    f"{e.__class__.__name__}: {e} for {res_dict['name']}", nl)
+                click.echo(
+                    f"\n{e.__class__.__name__} for {res_dict['name']}!",
+                    err=True)
+                click.echo(traceback.format_exc(), err=True)
                 nl = True
     if not nl:
         click.echo("")

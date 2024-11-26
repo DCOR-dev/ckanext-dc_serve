@@ -9,8 +9,10 @@ import ckan.plugins.toolkit as toolkit
 from dclab import RTDCWriter
 from dclab.cli import condense_dataset
 from dcor_shared import (
-    DC_MIME_TYPES, get_dc_instance, s3cc, wait_for_resource
+    DC_MIME_TYPES, get_dc_instance, s3cc, rqjob_register, s3, wait_for_resource
 )
+from dcor_shared import RQJob  # noqa: F401
+
 import h5py
 
 from .res_file_lock import CKANResourceFileLock
@@ -23,19 +25,34 @@ def admin_context():
     return {'ignore_auth': True, 'user': 'default'}
 
 
-def generate_condensed_resource_job(resource, override=False):
-    """Generates a condensed version of the dataset"""
+@rqjob_register(ckanext="dc_serve",
+                queue="dcor-long",
+                timeout=3600,
+                )
+def generate_condensed_resource(resource, override=False):
+    """Condense .rtdc file and upload to S3"""
     # Check whether we should be generating a condensed resource file.
     if not common.asbool(common.config.get(
             "ckanext.dc_serve.create_condensed_datasets", "true")):
         log.info("Generating condensed resources disabled via config")
         return False
 
+    if not s3.is_available():
+        log.info("S3 not available, not computing condensed resource")
+        return False
+
+    # make sure mimetype is defined
+    if "mimetype" not in resource:
+        suffix = "." + resource["name"].rsplit(".", 1)[-1]
+        for mt in DC_MIME_TYPES:
+            if suffix in DC_MIME_TYPES[mt]:
+                resource["mimetype"] = mt
+                break
+
     rid = resource["id"]
     log.info(f"Generating condensed resource {rid}")
     wait_for_resource(rid)
-    mtype = resource.get('mimetype', '')
-    if (mtype in DC_MIME_TYPES
+    if (resource.get('mimetype', '') in DC_MIME_TYPES
         # Check whether the file already exists on S3
         and (override
              or not s3cc.artifact_exists(resource_id=rid,

@@ -1,18 +1,16 @@
 from ckan import config
-from ckan.lib.jobs import _connect as ckan_redis_connect
 import ckan.plugins as plugins
 import ckan.plugins.toolkit as toolkit
 
 from flask import Blueprint
-from rq.job import Job
 
 from .cli import get_commands
 from . import helpers as dcor_helpers
-from .jobs import generate_condensed_resource_job
+from . import jobs
 from .route_funcs import dccondense, dcresource
 from .serve import dcserv
 
-from dcor_shared import DC_MIME_TYPES, s3
+from dcor_shared import s3
 
 
 class DCServePlugin(plugins.SingletonPlugin):
@@ -74,20 +72,9 @@ class DCServePlugin(plugins.SingletonPlugin):
     # IResourceController
     def after_resource_create(self, context, resource):
         """Generate condensed dataset"""
-        if resource.get('mimetype') in DC_MIME_TYPES and s3.is_available():
-            # Generate the condensed dataset
-            pkg_job_id = f"{resource['package_id']}_{resource['position']}_"
-            jid_condense = pkg_job_id + "condense"
-            jid_symlink = pkg_job_id + "symlink"
-            if not Job.exists(jid_condense, connection=ckan_redis_connect()):
-                toolkit.enqueue_job(generate_condensed_resource_job,
-                                    [resource],
-                                    title="Create condensed dataset and "
-                                          "upload it to S3",
-                                    queue="dcor-long",
-                                    rq_kwargs={"timeout": 3600,
-                                               "job_id": jid_condense,
-                                               "depends_on": [jid_symlink]})
+        if not context.get("is_background_job") and s3.is_available():
+            # All jobs are defined via decorators in jobs.py
+            jobs.RQJob.enqueue_all_jobs(resource, ckanext="dc_serve")
 
     # IActions
     def get_actions(self):
