@@ -5,16 +5,14 @@ from unittest import mock
 import shutil
 import uuid
 
-import ckan.common
 import ckan.tests.factories as factories
-import ckanext.dcor_schemas
 import dclab
 from dclab.rtdc_dataset import fmt_http
 import h5py
 
 import pytest
 
-from dcor_shared.testing import make_dataset, synchronous_enqueue_job
+from dcor_shared.testing import make_dataset_via_s3, synchronous_enqueue_job
 
 
 data_path = pathlib.Path(__file__).parent / "data"
@@ -22,12 +20,11 @@ data_path = pathlib.Path(__file__).parent / "data"
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
 @pytest.mark.usefixtures('clean_db', 'with_request_context')
-def test_auth_forbidden(app, create_with_upload):
+def test_auth_forbidden(app):
     user2 = factories.UserWithToken()
 
     # create a dataset
-    _, res_dict = make_dataset(
-        create_with_upload=create_with_upload,
+    _, res_dict = make_dataset_via_s3(
         resource_path=data_path / "calibration_beads_47.rtdc",
         activate=True,
         private=True)
@@ -47,7 +44,7 @@ def test_auth_forbidden(app, create_with_upload):
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
 @pytest.mark.usefixtures('clean_db', 'with_request_context')
-def test_api_dcserv_error(app, create_with_upload):
+def test_api_dcserv_error(app):
     user = factories.UserWithToken()
     owner_org = factories.Organization(users=[{
         'name': user['id'],
@@ -58,9 +55,9 @@ def test_api_dcserv_error(app, create_with_upload):
                       'user': user['name'],
                       'api_version': 3}
     # create a dataset
-    ds_dict, res_dict = make_dataset(
-        create_context, owner_org,
-        create_with_upload=create_with_upload,
+    ds_dict, res_dict = make_dataset_via_s3(
+        create_context=create_context,
+        owner_org=owner_org,
         resource_path=data_path / "calibration_beads_47.rtdc",
         activate=True)
 
@@ -120,16 +117,7 @@ def test_api_dcserv_error(app, create_with_upload):
 @pytest.mark.usefixtures('clean_db', 'with_request_context')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
-def test_api_dcserv_basin(enqueue_job_mock, app, create_with_upload,
-                          monkeypatch, ckan_config, tmpdir):
-    monkeypatch.setitem(ckan_config, 'ckan.storage_path', str(tmpdir))
-    monkeypatch.setattr(ckan.lib.uploader,
-                        'get_storage_path',
-                        lambda: str(tmpdir))
-    monkeypatch.setattr(
-        ckanext.dcor_schemas.plugin,
-        'DISABLE_AFTER_DATASET_CREATE_FOR_CONCURRENT_JOB_TESTS',
-        True)
+def test_api_dcserv_basin(enqueue_job_mock, app, tmp_path):
     user = factories.UserWithToken()
     owner_org = factories.Organization(users=[{
         'name': user['id'],
@@ -141,7 +129,7 @@ def test_api_dcserv_basin(enqueue_job_mock, app, create_with_upload,
                       'api_version': 3}
     # create a dataset
     path_orig = data_path / "calibration_beads_47.rtdc"
-    path_test = pathlib.Path(tmpdir) / "calibration_beads_47_test.rtdc"
+    path_test = tmp_path / "calibration_beads_47_test.rtdc"
     shutil.copy2(path_orig, path_test)
     with dclab.RTDCWriter(path_test) as hw:
         hw.store_basin(basin_name="example basin",
@@ -152,9 +140,9 @@ def test_api_dcserv_basin(enqueue_job_mock, app, create_with_upload,
                        verify=False,  # does not exist
                        )
 
-    ds_dict, res_dict = make_dataset(
-        create_context, owner_org,
-        create_with_upload=create_with_upload,
+    ds_dict, res_dict = make_dataset_via_s3(
+        create_context=create_context,
+        owner_org=owner_org,
         resource_path=path_test,
         activate=True,
         private=False,
@@ -188,30 +176,15 @@ def test_api_dcserv_basin(enqueue_job_mock, app, create_with_upload,
 @pytest.mark.usefixtures('clean_db', 'with_request_context')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
-def test_api_dcserv_basin_v2(enqueue_job_mock, app, create_with_upload,
-                             monkeypatch, ckan_config, tmpdir):
-    monkeypatch.setitem(ckan_config, 'ckan.storage_path', str(tmpdir))
-    monkeypatch.setattr(ckan.lib.uploader,
-                        'get_storage_path',
-                        lambda: str(tmpdir))
-    monkeypatch.setattr(
-        ckanext.dcor_schemas.plugin,
-        'DISABLE_AFTER_DATASET_CREATE_FOR_CONCURRENT_JOB_TESTS',
-        True)
-
+def test_api_dcserv_basin_v2(enqueue_job_mock, app, tmp_path):
     user = factories.UserWithToken()
-    user_obj = ckan.model.User.by_name(user["name"])
-    monkeypatch.setattr(ckan.common,
-                        'current_user',
-                        user_obj)
     # Note: `call_action` bypasses authorization!
     create_context = {'ignore_auth': False,
                       'user': user['name'],
                       'api_version': 3}
 
-    _, res_dict = make_dataset(
-        copy.deepcopy(create_context),
-        create_with_upload=create_with_upload,
+    _, res_dict = make_dataset_via_s3(
+        create_context=copy.deepcopy(create_context),
         resource_path=data_path / "calibration_beads_47.rtdc",
         activate=True)
 
@@ -219,7 +192,7 @@ def test_api_dcserv_basin_v2(enqueue_job_mock, app, create_with_upload,
 
     # create a dataset
     path_orig = data_path / "calibration_beads_47.rtdc"
-    path_test = pathlib.Path(tmpdir) / "calibration_beads_47_test.rtdc"
+    path_test = tmp_path / "calibration_beads_47_test.rtdc"
     shutil.copy2(path_orig, path_test)
 
     with h5py.File(path_test) as h5:
@@ -240,9 +213,8 @@ def test_api_dcserv_basin_v2(enqueue_job_mock, app, create_with_upload,
         # sanity check
         assert "deform" not in h5["events"]
 
-    ds_dict, res_dict = make_dataset(
-        copy.deepcopy(create_context),
-        create_with_upload=create_with_upload,
+    ds_dict, res_dict = make_dataset_via_s3(
+        create_context=copy.deepcopy(create_context),
         resource_path=path_test,
         activate=True)
 
@@ -302,17 +274,7 @@ def test_api_dcserv_basin_v2(enqueue_job_mock, app, create_with_upload,
 @pytest.mark.usefixtures('clean_db', 'with_request_context')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
-def test_api_dcserv_feature_list(enqueue_job_mock, app, ckan_config,
-                                 create_with_upload, monkeypatch, tmpdir):
-    monkeypatch.setitem(ckan_config, 'ckan.storage_path', str(tmpdir))
-    monkeypatch.setattr(ckan.lib.uploader,
-                        'get_storage_path',
-                        lambda: str(tmpdir))
-    monkeypatch.setattr(
-        ckanext.dcor_schemas.plugin,
-        'DISABLE_AFTER_DATASET_CREATE_FOR_CONCURRENT_JOB_TESTS',
-        True)
-
+def test_api_dcserv_feature_list(enqueue_job_mock, app):
     user = factories.UserWithToken()
     owner_org = factories.Organization(users=[{
         'name': user['id'],
@@ -322,9 +284,9 @@ def test_api_dcserv_feature_list(enqueue_job_mock, app, ckan_config,
     create_context = {'ignore_auth': False,
                       'user': user['name'], 'api_version': 3}
     # create a dataset
-    ds_dict, res_dict = make_dataset(
-        create_context, owner_org,
-        create_with_upload=create_with_upload,
+    ds_dict, res_dict = make_dataset_via_s3(
+        create_context=create_context,
+        owner_org=owner_org,
         resource_path=data_path / "calibration_beads_47.rtdc",
         activate=True)
 
@@ -345,17 +307,7 @@ def test_api_dcserv_feature_list(enqueue_job_mock, app, ckan_config,
 @pytest.mark.usefixtures('clean_db', 'with_request_context')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
-def test_api_dcserv_logs(enqueue_job_mock, app, ckan_config,
-                         create_with_upload, monkeypatch, tmpdir):
-    monkeypatch.setitem(ckan_config, 'ckan.storage_path', str(tmpdir))
-    monkeypatch.setattr(ckan.lib.uploader,
-                        'get_storage_path',
-                        lambda: str(tmpdir))
-    monkeypatch.setattr(
-        ckanext.dcor_schemas.plugin,
-        'DISABLE_AFTER_DATASET_CREATE_FOR_CONCURRENT_JOB_TESTS',
-        True)
-
+def test_api_dcserv_logs(enqueue_job_mock, app):
     user = factories.UserWithToken()
     owner_org = factories.Organization(users=[{
         'name': user['id'],
@@ -365,9 +317,9 @@ def test_api_dcserv_logs(enqueue_job_mock, app, ckan_config,
     create_context = {'ignore_auth': False,
                       'user': user['name'], 'api_version': 3}
     # create a dataset
-    ds_dict, res_dict = make_dataset(
-        create_context, owner_org,
-        create_with_upload=create_with_upload,
+    ds_dict, res_dict = make_dataset_via_s3(
+        create_context=create_context,
+        owner_org=owner_org,
         resource_path=data_path / "calibration_beads_47.rtdc",
         activate=True)
 
@@ -388,17 +340,7 @@ def test_api_dcserv_logs(enqueue_job_mock, app, ckan_config,
 @pytest.mark.usefixtures('clean_db', 'with_request_context')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
-def test_api_dcserv_metadata(enqueue_job_mock, app, create_with_upload,
-                             monkeypatch, ckan_config, tmpdir):
-    monkeypatch.setitem(ckan_config, 'ckan.storage_path', str(tmpdir))
-    monkeypatch.setattr(ckan.lib.uploader,
-                        'get_storage_path',
-                        lambda: str(tmpdir))
-    monkeypatch.setattr(
-        ckanext.dcor_schemas.plugin,
-        'DISABLE_AFTER_DATASET_CREATE_FOR_CONCURRENT_JOB_TESTS',
-        True)
-
+def test_api_dcserv_metadata(enqueue_job_mock, app):
     user = factories.UserWithToken()
     owner_org = factories.Organization(users=[{
         'name': user['id'],
@@ -409,9 +351,9 @@ def test_api_dcserv_metadata(enqueue_job_mock, app, create_with_upload,
                       'user': user['name'],
                       'api_version': 3}
     # create a dataset
-    ds_dict, res_dict = make_dataset(
-        create_context, owner_org,
-        create_with_upload=create_with_upload,
+    ds_dict, res_dict = make_dataset_via_s3(
+        create_context=create_context,
+        owner_org=owner_org,
         resource_path=data_path / "calibration_beads_47.rtdc",
         activate=True)
 
@@ -432,17 +374,7 @@ def test_api_dcserv_metadata(enqueue_job_mock, app, create_with_upload,
 @pytest.mark.usefixtures('clean_db', 'with_request_context')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
-def test_api_dcserv_size(enqueue_job_mock, app, create_with_upload,
-                         monkeypatch, ckan_config, tmpdir):
-    monkeypatch.setitem(ckan_config, 'ckan.storage_path', str(tmpdir))
-    monkeypatch.setattr(ckan.lib.uploader,
-                        'get_storage_path',
-                        lambda: str(tmpdir))
-    monkeypatch.setattr(
-        ckanext.dcor_schemas.plugin,
-        'DISABLE_AFTER_DATASET_CREATE_FOR_CONCURRENT_JOB_TESTS',
-        True)
-
+def test_api_dcserv_size(enqueue_job_mock, app):
     user = factories.UserWithToken()
     owner_org = factories.Organization(users=[{
         'name': user['id'],
@@ -452,9 +384,9 @@ def test_api_dcserv_size(enqueue_job_mock, app, create_with_upload,
     create_context = {'ignore_auth': False,
                       'user': user['name'], 'api_version': 3}
     # create a dataset
-    ds_dict, res_dict = make_dataset(
-        create_context, owner_org,
-        create_with_upload=create_with_upload,
+    ds_dict, res_dict = make_dataset_via_s3(
+        create_context=create_context,
+        owner_org=owner_org,
         resource_path=data_path / "calibration_beads_47.rtdc",
         activate=True)
 
@@ -476,17 +408,7 @@ def test_api_dcserv_size(enqueue_job_mock, app, create_with_upload,
 @pytest.mark.usefixtures('clean_db', 'with_request_context')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
-def test_api_dcserv_tables(enqueue_job_mock, app, create_with_upload,
-                           monkeypatch, ckan_config, tmpdir):
-    monkeypatch.setitem(ckan_config, 'ckan.storage_path', str(tmpdir))
-    monkeypatch.setattr(ckan.lib.uploader,
-                        'get_storage_path',
-                        lambda: str(tmpdir))
-    monkeypatch.setattr(
-        ckanext.dcor_schemas.plugin,
-        'DISABLE_AFTER_DATASET_CREATE_FOR_CONCURRENT_JOB_TESTS',
-        True)
-
+def test_api_dcserv_tables(enqueue_job_mock, app):
     user = factories.UserWithToken()
     owner_org = factories.Organization(users=[{
         'name': user['id'],
@@ -496,9 +418,9 @@ def test_api_dcserv_tables(enqueue_job_mock, app, create_with_upload,
     create_context = {'ignore_auth': False,
                       'user': user['name'], 'api_version': 3}
     # create a dataset
-    ds_dict, res_dict = make_dataset(
-        create_context, owner_org,
-        create_with_upload=create_with_upload,
+    ds_dict, res_dict = make_dataset_via_s3(
+        create_context=create_context,
+        owner_org=owner_org,
         resource_path=data_path / "cytoshot_blood.rtdc",
         activate=True)
 
@@ -521,17 +443,7 @@ def test_api_dcserv_tables(enqueue_job_mock, app, create_with_upload,
 @pytest.mark.usefixtures('clean_db', 'with_request_context')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
-def test_api_dcserv_trace_list(enqueue_job_mock, app, create_with_upload,
-                               monkeypatch, ckan_config, tmpdir):
-    monkeypatch.setitem(ckan_config, 'ckan.storage_path', str(tmpdir))
-    monkeypatch.setattr(ckan.lib.uploader,
-                        'get_storage_path',
-                        lambda: str(tmpdir))
-    monkeypatch.setattr(
-        ckanext.dcor_schemas.plugin,
-        'DISABLE_AFTER_DATASET_CREATE_FOR_CONCURRENT_JOB_TESTS',
-        True)
-
+def test_api_dcserv_trace_list(enqueue_job_mock, app):
     user = factories.UserWithToken()
     owner_org = factories.Organization(users=[{
         'name': user['id'],
@@ -541,9 +453,9 @@ def test_api_dcserv_trace_list(enqueue_job_mock, app, create_with_upload,
     create_context = {'ignore_auth': False,
                       'user': user['name'], 'api_version': 3}
     # create a dataset
-    _, res_dict = make_dataset(
-        create_context, owner_org,
-        create_with_upload=create_with_upload,
+    _, res_dict = make_dataset_via_s3(
+        create_context=create_context,
+        owner_org=owner_org,
         resource_path=data_path / "calibration_beads_47.rtdc",
         activate=True)
 
@@ -566,17 +478,7 @@ def test_api_dcserv_trace_list(enqueue_job_mock, app, create_with_upload,
 @pytest.mark.usefixtures('clean_db', 'with_request_context')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
-def test_api_dcserv_valid(enqueue_job_mock, app, create_with_upload,
-                          monkeypatch, ckan_config, tmpdir):
-    monkeypatch.setitem(ckan_config, 'ckan.storage_path', str(tmpdir))
-    monkeypatch.setattr(ckan.lib.uploader,
-                        'get_storage_path',
-                        lambda: str(tmpdir))
-    monkeypatch.setattr(
-        ckanext.dcor_schemas.plugin,
-        'DISABLE_AFTER_DATASET_CREATE_FOR_CONCURRENT_JOB_TESTS',
-        True)
-
+def test_api_dcserv_valid(enqueue_job_mock, app):
     user = factories.UserWithToken()
     owner_org = factories.Organization(users=[{
         'name': user['id'],
@@ -586,9 +488,9 @@ def test_api_dcserv_valid(enqueue_job_mock, app, create_with_upload,
     create_context = {'ignore_auth': False,
                       'user': user['name'], 'api_version': 3}
     # create a dataset
-    _, res_dict = make_dataset(
-        create_context, owner_org,
-        create_with_upload=create_with_upload,
+    _, res_dict = make_dataset_via_s3(
+        create_context=create_context,
+        owner_org=owner_org,
         resource_path=data_path / "calibration_beads_47.rtdc",
         activate=True)
 

@@ -1,3 +1,5 @@
+0.17.1
+ - tests: migrate tests to S3 uploads
 0.17.0
  - ref: migrate to dcor_shared.RQJob
 0.16.3

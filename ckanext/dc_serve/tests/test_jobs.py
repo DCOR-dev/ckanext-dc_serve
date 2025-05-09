@@ -12,16 +12,14 @@ import pathlib
 
 import pytest
 
-import ckan.lib
 import dclab
 import numpy as np
 import requests
 
-import ckanext.dcor_schemas.plugin
 import dcor_shared
 
 
-from dcor_shared.testing import make_dataset, synchronous_enqueue_job
+from dcor_shared.testing import make_dataset_via_s3, synchronous_enqueue_job
 
 
 data_path = pathlib.Path(__file__).parent / "data"
@@ -33,20 +31,8 @@ data_path = pathlib.Path(__file__).parent / "data"
 @pytest.mark.usefixtures('clean_db', 'with_request_context')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
-def test_create_condensed_dataset_job_upload_s3(
-        enqueue_job_mock, create_with_upload, monkeypatch, ckan_config,
-        tmpdir):
-    monkeypatch.setitem(ckan_config, 'ckan.storage_path', str(tmpdir))
-    monkeypatch.setattr(ckan.lib.uploader,
-                        'get_storage_path',
-                        lambda: str(tmpdir))
-    monkeypatch.setattr(
-        ckanext.dcor_schemas.plugin,
-        'DISABLE_AFTER_DATASET_CREATE_FOR_CONCURRENT_JOB_TESTS',
-        True)
-
-    ds_dict, res_dict = make_dataset(
-        create_with_upload=create_with_upload,
+def test_create_condensed_dataset_job_upload_s3(enqueue_job_mock, tmp_path):
+    ds_dict, res_dict = make_dataset_via_s3(
         resource_path=data_path / "calibration_beads_47.rtdc",
         activate=True)
     bucket_name = dcor_shared.get_ckan_config_option(
@@ -62,7 +48,7 @@ def test_create_condensed_dataset_job_upload_s3(
     assert response.status_code == 200
 
     # verify file validity
-    dl_path = pathlib.Path(tmpdir) / "calbeads.rtdc"
+    dl_path = tmp_path / "calbeads.rtdc"
     with dl_path.open("wb") as fd:
         fd.write(response.content)
     with dclab.new_dataset(dl_path) as ds:
@@ -83,19 +69,8 @@ def test_create_condensed_dataset_job_upload_s3(
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
 def test_do_not_create_condensed_by_config_dataset_job_upload_s3(
-        enqueue_job_mock, create_with_upload, monkeypatch, ckan_config,
-        tmpdir):
-    monkeypatch.setitem(ckan_config, 'ckan.storage_path', str(tmpdir))
-    monkeypatch.setattr(ckan.lib.uploader,
-                        'get_storage_path',
-                        lambda: str(tmpdir))
-    monkeypatch.setattr(
-        ckanext.dcor_schemas.plugin,
-        'DISABLE_AFTER_DATASET_CREATE_FOR_CONCURRENT_JOB_TESTS',
-        True)
-
-    ds_dict, res_dict = make_dataset(
-        create_with_upload=create_with_upload,
+        enqueue_job_mock):
+    ds_dict, res_dict = make_dataset_via_s3(
         resource_path=data_path / "calibration_beads_47.rtdc",
         activate=True)
     bucket_name = dcor_shared.get_ckan_config_option(
@@ -117,19 +92,8 @@ def test_do_not_create_condensed_by_config_dataset_job_upload_s3(
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
 def test_upload_condensed_dataset_to_s3_job_and_verify_basin(
-        enqueue_job_mock, create_with_upload, monkeypatch, ckan_config,
-        tmpdir):
-    monkeypatch.setitem(ckan_config, 'ckan.storage_path', str(tmpdir))
-    monkeypatch.setattr(ckan.lib.uploader,
-                        'get_storage_path',
-                        lambda: str(tmpdir))
-    monkeypatch.setattr(
-        ckanext.dcor_schemas.plugin,
-        'DISABLE_AFTER_DATASET_CREATE_FOR_CONCURRENT_JOB_TESTS',
-        True)
-
-    ds_dict, res_dict = make_dataset(
-        create_with_upload=create_with_upload,
+        enqueue_job_mock, tmp_path):
+    ds_dict, res_dict = make_dataset_via_s3(
         resource_path=data_path / "calibration_beads_47.rtdc",
         activate=True)
     bucket_name = dcor_shared.get_ckan_config_option(
@@ -145,7 +109,7 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_basin(
     assert response.status_code == 200
 
     # Download the condensed resource
-    dl_path = pathlib.Path(tmpdir) / "calbeads.rtdc"
+    dl_path = tmp_path / "calbeads.rtdc"
     with dl_path.open("wb") as fd:
         fd.write(response.content)
 
