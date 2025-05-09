@@ -1,15 +1,12 @@
 import pathlib
 from unittest import mock
 
-import ckan.common
-import ckan.model
 import ckan.tests.factories as factories
-import ckanext.dcor_schemas.plugin
 import dcor_shared
 
 import pytest
 
-from dcor_shared.testing import make_dataset, synchronous_enqueue_job
+from dcor_shared.testing import make_dataset_via_s3, synchronous_enqueue_job
 
 
 data_path = pathlib.Path(__file__).parent / "data"
@@ -19,23 +16,8 @@ data_path = pathlib.Path(__file__).parent / "data"
 @pytest.mark.usefixtures('clean_db', 'with_request_context')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
-def test_route_redircet_condensed_to_s3_private(
-        enqueue_job_mock, app, tmpdir, create_with_upload, monkeypatch,
-        ckan_config):
-    monkeypatch.setitem(ckan_config, 'ckan.storage_path', str(tmpdir))
-    monkeypatch.setattr(ckan.lib.uploader,
-                        'get_storage_path',
-                        lambda: str(tmpdir))
-    monkeypatch.setattr(
-        ckanext.dcor_schemas.plugin,
-        'DISABLE_AFTER_DATASET_CREATE_FOR_CONCURRENT_JOB_TESTS',
-        True)
-
+def test_route_redircet_condensed_to_s3_private(enqueue_job_mock, app):
     user = factories.UserWithToken()
-    user_obj = ckan.model.User.by_name(user["name"])
-    monkeypatch.setattr(ckan.common,
-                        'current_user',
-                        user_obj)
     owner_org = factories.Organization(users=[{
         'name': user['id'],
         'capacity': 'admin'
@@ -45,9 +27,9 @@ def test_route_redircet_condensed_to_s3_private(
                       'user': user['name'],
                       'api_version': 3}
     # create a dataset
-    ds_dict, res_dict = make_dataset(
-        create_context, owner_org,
-        create_with_upload=create_with_upload,
+    ds_dict, res_dict = make_dataset_via_s3(
+        create_context=create_context,
+        owner_org=owner_org,
         resource_path=data_path / "calibration_beads_47.rtdc",
         activate=True,
         private=True
@@ -92,23 +74,8 @@ def test_route_redircet_condensed_to_s3_private(
 @pytest.mark.usefixtures('clean_db', 'with_request_context')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
-def test_route_condensed_to_s3_public(
-        enqueue_job_mock, app, tmpdir, create_with_upload, monkeypatch,
-        ckan_config):
-    monkeypatch.setitem(ckan_config, 'ckan.storage_path', str(tmpdir))
-    monkeypatch.setattr(ckan.lib.uploader,
-                        'get_storage_path',
-                        lambda: str(tmpdir))
-    monkeypatch.setattr(
-        ckanext.dcor_schemas.plugin,
-        'DISABLE_AFTER_DATASET_CREATE_FOR_CONCURRENT_JOB_TESTS',
-        True)
-
+def test_route_condensed_to_s3_public(enqueue_job_mock, app):
     user = factories.UserWithToken()
-    user_obj = ckan.model.User.by_name(user["name"])
-    monkeypatch.setattr(ckan.common,
-                        'current_user',
-                        user_obj)
     owner_org = factories.Organization(users=[{
         'name': user['id'],
         'capacity': 'admin'
@@ -118,9 +85,9 @@ def test_route_condensed_to_s3_public(
                       'user': user['name'],
                       'api_version': 3}
     # create a dataset
-    ds_dict, res_dict = make_dataset(
-        create_context, owner_org,
-        create_with_upload=create_with_upload,
+    ds_dict, res_dict = make_dataset_via_s3(
+        create_context=create_context,
+        owner_org=owner_org,
         resource_path=data_path / "calibration_beads_47.rtdc",
         activate=True)
     rid = res_dict["id"]
@@ -152,23 +119,8 @@ def test_route_condensed_to_s3_public(
 @pytest.mark.usefixtures('clean_db', 'with_request_context')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
-def test_route_redircet_resource_to_s3_private(
-        enqueue_job_mock, app, tmpdir, create_with_upload, monkeypatch,
-        ckan_config):
-    monkeypatch.setitem(ckan_config, 'ckan.storage_path', str(tmpdir))
-    monkeypatch.setattr(ckan.lib.uploader,
-                        'get_storage_path',
-                        lambda: str(tmpdir))
-    monkeypatch.setattr(
-        ckanext.dcor_schemas.plugin,
-        'DISABLE_AFTER_DATASET_CREATE_FOR_CONCURRENT_JOB_TESTS',
-        True)
-
+def test_route_redircet_resource_to_s3_private(enqueue_job_mock, app):
     user = factories.UserWithToken()
-    user_obj = ckan.model.User.by_name(user["name"])
-    monkeypatch.setattr(ckan.common,
-                        'current_user',
-                        user_obj)
     owner_org = factories.Organization(users=[{
         'name': user['id'],
         'capacity': 'admin'
@@ -178,9 +130,9 @@ def test_route_redircet_resource_to_s3_private(
                       'user': user['name'],
                       'api_version': 3}
     # create a dataset
-    ds_dict, res_dict = make_dataset(
-        create_context, owner_org,
-        create_with_upload=create_with_upload,
+    ds_dict, res_dict = make_dataset_via_s3(
+        create_context=create_context,
+        owner_org=owner_org,
         resource_path=data_path / "calibration_beads_47.rtdc",
         activate=True,
         private=True
