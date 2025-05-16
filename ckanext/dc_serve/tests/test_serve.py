@@ -44,12 +44,14 @@ def test_auth_forbidden(app):
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
 @pytest.mark.usefixtures('clean_db', 'with_request_context')
-def test_api_dcserv_error(app):
+@mock.patch('ckan.plugins.toolkit.enqueue_job',
+            side_effect=synchronous_enqueue_job)
+def test_api_dcserv_error(enqueue_job_mock, app):
     user = factories.UserWithToken()
-    owner_org = factories.Organization(users=[{
-        'name': user['id'],
-        'capacity': 'admin'
-    }])
+    owner_org = factories.Organization(
+        users=[{'name': user['id'],
+                'capacity': 'admin'}]
+    )
     # Note: `call_action` bypasses authorization!
     create_context = {'ignore_auth': False,
                       'user': user['name'],
@@ -64,8 +66,7 @@ def test_api_dcserv_error(app):
     # missing query parameter
     resp = app.get(
         "/api/3/action/dcserv",
-        params={"id": res_dict["id"],
-                },
+        params={"id": res_dict["id"]},
         headers={u"authorization": user["token"]},
         status=409
     )
@@ -76,8 +77,7 @@ def test_api_dcserv_error(app):
     # missing id parameter
     resp = app.get(
         "/api/3/action/dcserv",
-        params={"query": "feature",
-                },
+        params={"query": "feature"},
         headers={u"authorization": user["token"]},
         status=409
     )

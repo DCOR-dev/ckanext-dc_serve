@@ -93,6 +93,7 @@ def test_route_condensed_to_s3_public(enqueue_job_mock, app):
     did = ds_dict["id"]
     resp = app.get(
         f"/dataset/{did}/resource/{rid}/condensed.rtdc",
+        follow_redirects=False,
     )
 
     endpoint = dcor_shared.get_ckan_config_option(
@@ -142,6 +143,7 @@ def test_route_redircet_resource_to_s3_private(enqueue_job_mock, app):
     resp = app.get(
         f"/dataset/{did}/resource/{rid}/download/random_name",
         headers={u"authorization": user["token"]},
+        follow_redirects=False,
     )
 
     endpoint = dcor_shared.get_ckan_config_option(
