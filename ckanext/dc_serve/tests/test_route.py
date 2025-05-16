@@ -136,12 +136,12 @@ def test_route_redircet_resource_to_s3_private(enqueue_job_mock, app):
     did = ds_dict["id"]
     # We should not be authorized to access the resource without API token
     app.get(
-        f"/dataset/{did}/resource/{rid}/download/random_name",
+        f"/dataset/{did}/resource/{rid}/download/calibration_beads_47.rtdc",
         status=404
     )
 
     resp = app.get(
-        f"/dataset/{did}/resource/{rid}/download/random_name",
+        f"/dataset/{did}/resource/{rid}/download/calibration_beads_47.rtdc",
         headers={"Authorization": user["token"]},
         follow_redirects=False,
     )
