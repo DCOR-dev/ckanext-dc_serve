@@ -38,11 +38,6 @@ def test_route_redircet_condensed_to_s3_private(enqueue_job_mock, app):
     assert "s3_available" in res_dict
     assert "s3_url" in res_dict
 
-    # Since version 0.15.0 we don't store the condensed resource locally
-    path = dcor_shared.get_resource_path(rid)
-    path_cond = path.with_name(path.name + "_condensed.rtdc")
-    assert not path_cond.exists(), "sanity check"
-
     did = ds_dict["id"]
     # We should not be authorized to access the resource without API token
     resp0 = app.get(
@@ -94,11 +89,6 @@ def test_route_condensed_to_s3_public(enqueue_job_mock, app):
     assert "s3_available" in res_dict
     assert "s3_url" in res_dict
 
-    # Since version 0.15.0 we don't store the condensed resource locally
-    path = dcor_shared.get_resource_path(rid)
-    path_cond = path.with_name(path.name + "_condensed.rtdc")
-    assert not path_cond.exists(), "sanity check"
-
     did = ds_dict["id"]
     resp = app.get(
         f"/dataset/{did}/resource/{rid}/condensed.rtdc",
@@ -140,11 +130,6 @@ def test_route_redircet_resource_to_s3_private(enqueue_job_mock, app):
     rid = res_dict["id"]
     assert "s3_available" in res_dict
     assert "s3_url" in res_dict
-
-    # Since version 0.15.0 we don't store the condensed resource locally
-    path = dcor_shared.get_resource_path(rid)
-    path_cond = path.with_name(path.name + "_condensed.rtdc")
-    assert not path_cond.exists(), "sanity check"
 
     did = ds_dict["id"]
     # We should not be authorized to access the resource without API token

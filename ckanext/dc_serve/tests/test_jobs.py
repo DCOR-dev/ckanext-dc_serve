@@ -55,11 +55,6 @@ def test_create_condensed_dataset_job_upload_s3(enqueue_job_mock, tmp_path):
         assert "volume" in ds
         assert np.allclose(ds["deform"][0], 0.011666297)
 
-    # the local file path should not exist anymore since version 0.15.0
-    path = dcor_shared.get_resource_path(res_dict["id"])
-    path_cond = path.with_name(path.name + "_condensed.rtdc")
-    assert not path_cond.exists()
-
 
 # We need the dcor_depot extension to make sure that the symbolic-
 # linking pipeline is used.

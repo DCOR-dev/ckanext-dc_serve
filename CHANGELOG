@@ -1,5 +1,6 @@
 0.17.1
  - ci: update GitHub Actions workflow to use Docker for testing
+ - ref: don't use deprecated `dcor_shared.get_resource_path`
  - tests: migrate tests to S3 uploads
 0.17.0
  - ref: migrate to dcor_shared.RQJob
