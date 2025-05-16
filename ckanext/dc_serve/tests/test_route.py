@@ -48,7 +48,7 @@ def test_route_redircet_condensed_to_s3_private(enqueue_job_mock, app):
 
     resp = app.get(
         f"/dataset/{did}/resource/{rid}/condensed.rtdc",
-        headers={u"authorization": user["token"]},
+        headers={"Authorization": user["token"]},
         follow_redirects=False,
     )
 
@@ -142,7 +142,7 @@ def test_route_redircet_resource_to_s3_private(enqueue_job_mock, app):
 
     resp = app.get(
         f"/dataset/{did}/resource/{rid}/download/random_name",
-        headers={u"authorization": user["token"]},
+        headers={"Authorization": user["token"]},
         follow_redirects=False,
     )
 

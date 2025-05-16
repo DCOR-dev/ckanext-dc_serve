@@ -67,7 +67,7 @@ def test_api_dcserv_error(enqueue_job_mock, app):
     resp = app.get(
         "/api/3/action/dcserv",
         params={"id": res_dict["id"]},
-        headers={u"authorization": user["token"]},
+        headers={"Authorization": user["token"]},
         status=409
     )
     jres = json.loads(resp.body)
@@ -78,7 +78,7 @@ def test_api_dcserv_error(enqueue_job_mock, app):
     resp = app.get(
         "/api/3/action/dcserv",
         params={"query": "feature"},
-        headers={u"authorization": user["token"]},
+        headers={"Authorization": user["token"]},
         status=409
     )
     jres = json.loads(resp.body)
@@ -92,7 +92,7 @@ def test_api_dcserv_error(enqueue_job_mock, app):
         params={"query": "feature_list",
                 "id": bid,
                 },
-        headers={u"authorization": user["token"]},
+        headers={"Authorization": user["token"]},
         status=404
     )
     jres = json.loads(resp.body)
@@ -105,7 +105,7 @@ def test_api_dcserv_error(enqueue_job_mock, app):
         params={"query": "peter",
                 "id": res_dict["id"],
                 },
-        headers={u"authorization": user["token"]},
+        headers={"Authorization": user["token"]},
         status=409
     )
     jres = json.loads(resp.body)
@@ -153,7 +153,7 @@ def test_api_dcserv_basin(enqueue_job_mock, app, tmp_path):
         params={"id": res_dict["id"],
                 "query": "basins",
                 },
-        headers={u"authorization": user["token"]},
+        headers={"Authorization": user["token"]},
         status=200
     )
 
@@ -225,7 +225,7 @@ def test_api_dcserv_basin_v2(enqueue_job_mock, app, tmp_path):
                 "query": "feature_list",
                 "version": "2",
                 },
-        headers={u"authorization": user["token"]},
+        headers={"Authorization": user["token"]},
         status=200
     )
     jres = json.loads(resp.body)
@@ -240,7 +240,7 @@ def test_api_dcserv_basin_v2(enqueue_job_mock, app, tmp_path):
                 "feature": "area_um",
                 "version": "2",
                 },
-        headers={u"authorization": user["token"]},
+        headers={"Authorization": user["token"]},
         status=409  # ValidationError
     )
     jres = json.loads(resp.body)
@@ -253,7 +253,7 @@ def test_api_dcserv_basin_v2(enqueue_job_mock, app, tmp_path):
                 "query": "basins",
                 "version": "2",
                 },
-        headers={u"authorization": user["token"]},
+        headers={"Authorization": user["token"]},
         status=200
     )
     jres = json.loads(resp.body)
@@ -295,7 +295,7 @@ def test_api_dcserv_feature_list(enqueue_job_mock, app):
         params={"id": res_dict["id"],
                 "query": "feature_list",
                 },
-        headers={u"authorization": user["token"]},
+        headers={"Authorization": user["token"]},
         status=200
     )
     jres = json.loads(resp.body)
@@ -328,7 +328,7 @@ def test_api_dcserv_logs(enqueue_job_mock, app):
         params={"id": res_dict["id"],
                 "query": "logs",
                 },
-        headers={u"authorization": user["token"]},
+        headers={"Authorization": user["token"]},
         status=200
     )
     jres = json.loads(resp.body)
@@ -362,7 +362,7 @@ def test_api_dcserv_metadata(enqueue_job_mock, app):
         params={"id": res_dict["id"],
                 "query": "metadata",
                 },
-        headers={u"authorization": user["token"]},
+        headers={"Authorization": user["token"]},
         status=200
     )
     jres = json.loads(resp.body)
@@ -395,7 +395,7 @@ def test_api_dcserv_size(enqueue_job_mock, app):
         params={"id": res_dict["id"],
                 "query": "size",
                 },
-        headers={u"authorization": user["token"]},
+        headers={"Authorization": user["token"]},
         status=200
     )
     jres = json.loads(resp.body)
@@ -429,7 +429,7 @@ def test_api_dcserv_tables(enqueue_job_mock, app):
         params={"id": res_dict["id"],
                 "query": "tables",
                 },
-        headers={u"authorization": user["token"]},
+        headers={"Authorization": user["token"]},
         status=200
     )
     jres = json.loads(resp.body)
@@ -464,7 +464,7 @@ def test_api_dcserv_trace_list(enqueue_job_mock, app):
         params={"id": res_dict["id"],
                 "query": "trace_list",
                 },
-        headers={u"authorization": user["token"]},
+        headers={"Authorization": user["token"]},
         status=200
     )
     jres = json.loads(resp.body)
@@ -499,7 +499,7 @@ def test_api_dcserv_valid(enqueue_job_mock, app):
         params={"id": res_dict["id"],
                 "query": "valid",
                 },
-        headers={u"authorization": user["token"]},
+        headers={"Authorization": user["token"]},
         status=200
     )
     jres = json.loads(resp.body)
