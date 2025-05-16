@@ -88,6 +88,16 @@ jobs:
         run: |
           dcor develop --yes
           dcor inspect --assume-yes
+      
+      - name: Sanity check for services inside CKAN (MinIO, PostgreSQL)
+        run: |
+          apt-get update && apt-get install -y postgresql-client
+
+          echo "Checking MinIO connectivity..."
+          wget --spider --quiet http://minio:9000/minio/health/ready && echo "MinIO is reachable."
+
+          echo "Checking PostgreSQL..."
+          pg_isready -h postgres -U postgres && echo "PostgreSQL is ready."
 
       - name: Install extension and requirements
         run: |
