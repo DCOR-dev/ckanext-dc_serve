@@ -43,6 +43,7 @@ def test_create_condensed_dataset_job_upload_s3(enqueue_job_mock, tmp_path):
     endpoint = dcor_shared.get_ckan_config_option(
         "dcor_object_store.endpoint_url")
     cond_url = f"{endpoint}/{bucket_name}/{object_name}"
+    print("ACCESSING URL", cond_url)
     response = requests.get(cond_url)
     assert response.ok, "resource is public"
     assert response.status_code == 200
