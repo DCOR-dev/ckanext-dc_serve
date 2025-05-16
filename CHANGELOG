@@ -1,4 +1,5 @@
 0.17.1
+ - ci: update GitHub Actions workflow to use Docker for testing
  - tests: migrate tests to S3 uploads
 0.17.0
  - ref: migrate to dcor_shared.RQJob
