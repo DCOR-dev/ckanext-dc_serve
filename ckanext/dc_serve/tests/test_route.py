@@ -49,6 +49,7 @@ def test_route_redircet_condensed_to_s3_private(enqueue_job_mock, app):
     resp = app.get(
         f"/dataset/{did}/resource/{rid}/condensed.rtdc",
         headers={u"authorization": user["token"]},
+        follow_redirects=False,
     )
 
     endpoint = dcor_shared.get_ckan_config_option(
@@ -56,8 +57,8 @@ def test_route_redircet_condensed_to_s3_private(enqueue_job_mock, app):
     bucket_name = dcor_shared.get_ckan_config_option(
         "dcor_object_store.bucket_name").format(
         organization_id=ds_dict["organization"]["id"])
-    redirect = resp.history[0]
-    assert redirect.status_code == 302
+    redirect = resp
+    assert resp.status_code == 302
     redirect_stem = (f"{endpoint}/{bucket_name}/condensed/"
                      f"{rid[:3]}/{rid[3:6]}/{rid[6:]}")
     # Since we have a presigned URL, it is longer than the normal S3 URL.
@@ -99,7 +100,7 @@ def test_route_condensed_to_s3_public(enqueue_job_mock, app):
     bucket_name = dcor_shared.get_ckan_config_option(
         "dcor_object_store.bucket_name").format(
         organization_id=ds_dict["organization"]["id"])
-    redirect = resp.history[0]
+    redirect = resp
     assert redirect.status_code == 302
     assert redirect.location.startswith(f"{endpoint}/{bucket_name}/condensed/"
                                         f"{rid[:3]}/{rid[3:6]}/{rid[6:]}")
@@ -133,11 +134,10 @@ def test_route_redircet_resource_to_s3_private(enqueue_job_mock, app):
 
     did = ds_dict["id"]
     # We should not be authorized to access the resource without API token
-    resp0 = app.get(
+    app.get(
         f"/dataset/{did}/resource/{rid}/download/random_name",
         status=404
     )
-    assert len(resp0.history) == 0
 
     resp = app.get(
         f"/dataset/{did}/resource/{rid}/download/random_name",
@@ -149,7 +149,7 @@ def test_route_redircet_resource_to_s3_private(enqueue_job_mock, app):
     bucket_name = dcor_shared.get_ckan_config_option(
         "dcor_object_store.bucket_name").format(
         organization_id=ds_dict["organization"]["id"])
-    redirect = resp.history[0]
+    redirect = resp
     assert redirect.status_code == 302
     redirect_stem = (f"{endpoint}/{bucket_name}/resource/"
                      f"{rid[:3]}/{rid[3:6]}/{rid[6:]}")

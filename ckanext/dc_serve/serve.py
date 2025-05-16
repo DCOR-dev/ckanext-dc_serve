@@ -34,8 +34,9 @@ def get_dc_tables(ds, from_basins=False):
                 tables.update(get_dc_tables(bn.ds))
     else:
         for tab in ds.tables:
-            tables[tab] = (ds.tables[tab].dtype.names,
+            tables[tab] = (ds.tables[tab].keys(),
                            ds.tables[tab][:].tolist())
+
     return tables
 
 
