@@ -37,6 +37,7 @@ def test_create_condensed_dataset_job_upload_s3(enqueue_job_mock, tmp_path):
         activate=True)
 
     # sanity check
+    print("ACCESSING URL", res_dict["s3_url"])
     response = requests.get(res_dict["s3_url"])
     assert response.ok
     assert response.status_code == 200
