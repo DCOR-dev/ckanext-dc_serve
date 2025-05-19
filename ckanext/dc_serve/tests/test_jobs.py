@@ -35,6 +35,12 @@ def test_create_condensed_dataset_job_upload_s3(enqueue_job_mock, tmp_path):
     ds_dict, res_dict = make_dataset_via_s3(
         resource_path=data_path / "calibration_beads_47.rtdc",
         activate=True)
+
+    # sanity check
+    response = requests.get(res_dict["s3_url"])
+    assert response.ok
+    assert response.status_code == 200
+
     bucket_name = dcor_shared.get_ckan_config_option(
         "dcor_object_store.bucket_name").format(
         organization_id=ds_dict["organization"]["id"])
