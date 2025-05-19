@@ -14,7 +14,7 @@ data_path = pathlib.Path(__file__).parent / "data"
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_depot dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db', 'with_request_context')
+@pytest.mark.usefixtures('clean_db')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
 def test_route_redircet_condensed_to_s3_private(enqueue_job_mock, app):
@@ -72,7 +72,7 @@ def test_route_redircet_condensed_to_s3_private(enqueue_job_mock, app):
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_depot dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db', 'with_request_context')
+@pytest.mark.usefixtures('clean_db')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
 def test_route_condensed_to_s3_public(enqueue_job_mock, app):
@@ -113,7 +113,7 @@ def test_route_condensed_to_s3_public(enqueue_job_mock, app):
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_depot dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db', 'with_request_context')
+@pytest.mark.usefixtures('clean_db')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
 def test_route_redircet_resource_to_s3_private(enqueue_job_mock, app):
