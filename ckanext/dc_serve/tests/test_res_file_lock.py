@@ -3,7 +3,7 @@ from ckanext.dc_serve import res_file_lock
 
 
 def test_lock_context():
-    res_id = str(uuid.uuid1())
+    res_id = str(uuid.uuid4())
     with res_file_lock.CKANResourceFileLock(
             resource_id=res_id,
             locker_id="collect_apples") as fla:
@@ -27,7 +27,7 @@ def test_lock_context():
 
 
 def test_lock_delete():
-    res_id = str(uuid.uuid1())
+    res_id = str(uuid.uuid4())
     fla = res_file_lock.CKANResourceFileLock(
         resource_id=res_id,
         locker_id="collect_apples")

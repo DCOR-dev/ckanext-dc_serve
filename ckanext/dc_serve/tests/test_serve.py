@@ -86,7 +86,7 @@ def test_api_dcserv_error(enqueue_job_mock, app):
     assert "Please specify 'id' parameter" in jres["error"]["message"]
 
     # bad ID
-    bid = str(uuid.uuid1())
+    bid = str(uuid.uuid4())
     resp = app.get(
         "/api/3/action/dcserv",
         params={"query": "feature_list",
