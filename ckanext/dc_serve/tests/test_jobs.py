@@ -29,7 +29,7 @@ data_path = pathlib.Path(__file__).parent / "data"
 # We need the dcor_depot extension to make sure that the symbolic-
 # linking pipeline is used.
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_depot dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db')
+@pytest.mark.usefixtures('clean_db', 'with_request_context')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
 def test_create_condensed_dataset_job_upload_s3(enqueue_job_mock, tmp_path):
@@ -73,7 +73,7 @@ def test_create_condensed_dataset_job_upload_s3(enqueue_job_mock, tmp_path):
 # linking pipeline is used.
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_depot dcor_schemas dc_serve')
 @pytest.mark.ckan_config('ckanext.dc_serve.create_condensed_datasets', "false")
-@pytest.mark.usefixtures('clean_db')
+@pytest.mark.usefixtures('clean_db', 'with_request_context')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
 def test_do_not_create_condensed_by_config_dataset_job_upload_s3(
@@ -96,7 +96,7 @@ def test_do_not_create_condensed_by_config_dataset_job_upload_s3(
 # We need the dcor_depot extension to make sure that the symbolic-
 # linking pipeline is used.
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_depot dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db')
+@pytest.mark.usefixtures('clean_db', 'with_request_context')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
 def test_upload_condensed_dataset_to_s3_job_and_verify_basin(
