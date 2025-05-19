@@ -16,6 +16,7 @@ import dclab
 import numpy as np
 import requests
 
+from dcor_shared import s3cc
 import dcor_shared
 
 
@@ -35,21 +36,26 @@ def test_create_condensed_dataset_job_upload_s3(enqueue_job_mock, tmp_path):
     ds_dict, res_dict = make_dataset_via_s3(
         resource_path=data_path / "calibration_beads_47.rtdc",
         activate=True)
+    rid = res_dict["id"]
 
-    # sanity check
+    # Sanity checks
     print("ACCESSING URL", res_dict["s3_url"])
     response = requests.get(res_dict["s3_url"])
     assert response.ok
     assert response.status_code == 200
+    # Before attempting to access the object, make sure it was actually
+    # created.
+    assert s3cc.artifact_exists(rid, artifact="condensed")
 
     bucket_name = dcor_shared.get_ckan_config_option(
         "dcor_object_store.bucket_name").format(
         organization_id=ds_dict["organization"]["id"])
-    rid = res_dict["id"]
     object_name = f"condensed/{rid[:3]}/{rid[3:6]}/{rid[6:]}"
     endpoint = dcor_shared.get_ckan_config_option(
         "dcor_object_store.endpoint_url")
     cond_url = f"{endpoint}/{bucket_name}/{object_name}"
+
+
     print("ACCESSING URL", cond_url)
     response = requests.get(cond_url)
     assert response.ok, "resource is public"

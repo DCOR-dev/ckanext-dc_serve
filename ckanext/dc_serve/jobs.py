@@ -34,11 +34,11 @@ def generate_condensed_resource(resource, override=False):
     # Check whether we should be generating a condensed resource file.
     if not common.asbool(common.config.get(
             "ckanext.dc_serve.create_condensed_datasets", "true")):
-        log.info("Generating condensed resources disabled via config")
+        log.warning("Generating condensed resources disabled via config")
         return False
 
     if not s3.is_available():
-        log.info("S3 not available, not computing condensed resource")
+        log.error("S3 not available, not computing condensed resource")
         return False
 
     # make sure mimetype is defined
