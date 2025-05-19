@@ -3,6 +3,7 @@ from unittest import mock
 
 import ckan.tests.factories as factories
 import dcor_shared
+from dcor_shared import s3cc
 
 import pytest
 
@@ -37,6 +38,10 @@ def test_route_redircet_condensed_to_s3_private(enqueue_job_mock, app):
     rid = res_dict["id"]
     assert "s3_available" in res_dict
     assert "s3_url" in res_dict
+
+    # sanity check
+    assert s3cc.artifact_exists(rid, artifact="resource")
+    assert s3cc.artifact_exists(rid, artifact="condensed")
 
     did = ds_dict["id"]
     # We should not be authorized to access the resource without API token
