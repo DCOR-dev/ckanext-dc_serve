@@ -194,9 +194,9 @@ def get_resource_kernel_base(resource_id, public: bool = False):
     if "trace" in ds_res:
         r_data["trace_list"] = sorted(ds_res["trace"].keys())
     # tables
-    r_data["tables"] = get_dc_tables(ds_res, from_basins=True)
+    r_data["tables"] = get_dc_tables(ds_res, from_basins=False)
     # logs
-    r_data["logs"] = get_dc_logs(ds_res, from_basins=True)
+    r_data["logs"] = get_dc_logs(ds_res, from_basins=False)
     # basin features
     basin_features = {
         f"resource-{resource_id[:5]}": ds_res.features_innate,
@@ -225,7 +225,7 @@ def get_resource_kernel_complement_condensed(r_data):
     resource_id = r_data["id"]
     ds_con = s3cc.get_s3_dc_handle(resource_id, artifact="condensed")
     # condense logs
-    new_logs = get_dc_logs(ds_con, from_basins=True)
+    new_logs = get_dc_logs(ds_con, from_basins=False)
     for ln in new_logs:
         if ln not in r_data["logs"]:
             r_data["logs"][ln] = new_logs[ln]

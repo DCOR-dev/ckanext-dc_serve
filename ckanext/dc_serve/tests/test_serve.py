@@ -310,8 +310,8 @@ def test_api_dcserv_basin_v2_public_not_signed(enqueue_job_mock, app):
         for url in bn["urls"]:
             assert not url.lower().count("expires")
 
-    bn_res = basins[0]
-    bn_cond = basins[1]
+    bn_cond = basins[0]
+    bn_res = basins[1]
 
     assert bn_res["name"] == f"resource-{rid[:5]}"
     assert "deform" in bn_res["features"]
@@ -364,8 +364,8 @@ def test_api_dcserv_basin_v2_private_presigned(enqueue_job_mock, app):
         for url in bn["urls"]:
             assert url.lower().count("expires")
 
-    bn_res = basins[0]
-    bn_cond = basins[1]
+    bn_cond = basins[0]
+    bn_res = basins[1]
 
     assert bn_res["name"] == f"resource-{rid[:5]}"
     assert "deform" in bn_res["features"]
