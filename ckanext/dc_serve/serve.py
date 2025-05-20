@@ -234,7 +234,10 @@ def get_resource_kernel_complement_condensed(r_data):
     r_data["basin_features"][f"condensed-{resource_id[:5]}"] = \
         ds_con.features_innate
     if r_data["public"]:
-        r_data["basin_dicts"].append({
+        # The condensed resource should come first, because the
+        # corresponding file on S3 is smaller and chunking might
+        # be better.
+        r_data["basin_dicts"].insert(0, {
             "name": f"condensed-{resource_id[:5]}",
             "format": "http",
             "type": "remote",
