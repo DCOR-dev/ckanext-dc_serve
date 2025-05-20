@@ -126,10 +126,9 @@ def dcserv(context, data_dict=None):
                 data = copy.deepcopy(r_data["basin_dicts"])
             else:
                 # We have a private resource and must work with presigned URLs.
-                ds = s3cc.get_s3_dc_handle_basin_based(rid)
                 # The basins just links to the original resource and
                 # condensed file.
-                data = ds.basins_get_dicts()
+                data = get_resource_basins_dicts_private(rid)
             # populate the basin features in-place
             basin_features = r_data["basin_features"]
             for bn_dict in data:
@@ -150,6 +149,26 @@ def dcserv(context, data_dict=None):
 def is_dc_resource(res_id) -> bool:
     resource = model.Resource.get(res_id)
     return resource.mimetype in DC_MIME_TYPES
+
+
+def get_resource_basins_dicts_private(resource_id):
+    """Return list of private resource basin dicts
+
+    Note that the condensed resource comes first in the list.
+    """
+    basin_dicts = []
+    for artifact in ["condensed", "resource"]:
+        signed_url = s3cc.create_presigned_url(resource_id, artifact=artifact)
+        basin_dicts.append({
+            "name": f"dcor-presigned-{artifact}-{resource_id[:5]}",
+            "format": "http",
+            "type": "remote",
+            "mapping": "same",
+            "perishable": True,
+            "key": f"dcor-presigned-{artifact}-{resource_id}",
+            "urls": [signed_url],
+        })
+    return basin_dicts
 
 
 def get_resource_kernel(resource_id: str) -> dict:
@@ -204,15 +223,26 @@ def get_resource_kernel_base(resource_id, public: bool = False):
     r_data["basin_features"] = basin_features
     # basins (for public resources only, since we don't need presigned URLs)
     if public:
-        r_data["basin_dicts"] = [{
-            "name": f"resource-{resource_id[:5]}",
-            "format": "http",
-            "type": "remote",
-            "mapping": "same",
-            "perishable": False,
-            "key": f"dcor-resource-{resource_id}",
-            "urls": [ds_res.path],
-        }]
+        # The condensed resource should come first, because it
+        # probably has better chunking / data access via HTTP.
+        # Note that we can add the condensed resource here, even
+        # if it is not yet available.
+        basin_urls = {
+            "condensed": ds_res.path.replace("/resource/", "/condensed/"),
+            "resource": ds_res.path,
+        }
+        basins_dicts = []
+        for artifact in basin_urls:
+            basins_dicts.append({
+                "name": f"{artifact}-{resource_id[:5]}",
+                "format": "http",
+                "type": "remote",
+                "mapping": "same",
+                "perishable": False,
+                "key": f"dcor-{artifact}-{resource_id}",
+                "urls": [basin_urls[artifact]],
+            })
+        r_data["basin_dicts"] = basins_dicts
 
     return r_data
 
@@ -233,19 +263,6 @@ def get_resource_kernel_complement_condensed(r_data):
     # basin features
     r_data["basin_features"][f"condensed-{resource_id[:5]}"] = \
         ds_con.features_innate
-    if r_data["public"]:
-        # The condensed resource should come first, because the
-        # corresponding file on S3 is smaller and chunking might
-        # be better.
-        r_data["basin_dicts"].insert(0, {
-            "name": f"condensed-{resource_id[:5]}",
-            "format": "http",
-            "type": "remote",
-            "mapping": "same",
-            "perishable": False,
-            "key": f"dcor-condensed-{resource_id}",
-            "urls": [ds_con.path],
-        })
     r_data["complemented-condensed"] = True
 
 
