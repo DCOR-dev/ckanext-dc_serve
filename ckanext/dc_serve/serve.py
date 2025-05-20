@@ -1,18 +1,25 @@
 import atexit
+import copy
 import functools
+import logging
 
 import ckan.logic as logic
 import ckan.model as model
 import ckan.plugins.toolkit as toolkit
 
-from dcor_shared import DC_MIME_TYPES, get_resource_dc_config, s3cc
+from dcor_shared import (
+    DC_MIME_TYPES, s3cc, is_resource_private,
+)
+
+
+logger = logging.getLogger(__name__)
 
 
 def admin_context():
     return {'ignore_auth': True, 'user': 'default'}
 
 
-def get_dc_logs(ds, from_basins=False):
+def get_dc_logs(ds, from_basins: bool = False) -> dict:
     """Return logs of a dataset, optionally looking only in its basins"""
     logs = {}
     if from_basins:
@@ -25,7 +32,7 @@ def get_dc_logs(ds, from_basins=False):
     return logs
 
 
-def get_dc_tables(ds, from_basins=False):
+def get_dc_tables(ds, from_basins: bool = False) -> dict:
     """Return tables of a dataset, optionally looking only in its basins"""
     tables = {}
     if from_basins:
@@ -100,32 +107,39 @@ def dcserv(context, data_dict=None):
     if query == "valid":
         data = s3cc.artifact_exists(rid, artifact="resource")
     elif query == "metadata":
-        return get_resource_dc_config(rid)
+        return get_resource_kernel(rid)["config"]
     else:
         if query == "feature_list":
+            # Don't return any features. Basins are responsible.
             data = []
         elif query == "logs":
-            with s3cc.get_s3_dc_handle_basin_based(rid) as ds:
-                data = get_dc_logs(ds, from_basins=True)
+            data = get_resource_kernel(rid)["logs"]
         elif query == "size":
-            with s3cc.get_s3_dc_handle(rid) as ds:
-                data = len(ds)
+            data = get_resource_kernel(
+                rid)["config"]["experiment"]["event count"]
         elif query == "basins":
+            r_data = get_resource_kernel(rid)
             # Return all basins from the condensed file
             # (the S3 basins are already in there).
-            with s3cc.get_s3_dc_handle_basin_based(rid) as ds:
+            if r_data["public"] and "basin_dicts" in r_data:
+                # We have a public resource and a complete set of basins.
+                data = copy.deepcopy(r_data["basin_dicts"])
+            else:
+                # We have a private resource and must work with presigned URLs.
+                ds = s3cc.get_s3_dc_handle_basin_based(rid)
                 # The basins just links to the original resource and
                 # condensed file.
                 data = ds.basins_get_dicts()
+            # populate the basin features in-place
+            basin_features = r_data["basin_features"]
+            for bn_dict in data:
+                name = bn_dict["name"]
+                if name in basin_features:
+                    bn_dict["features"] = basin_features[name]
         elif query == "tables":
-            with s3cc.get_s3_dc_handle_basin_based(rid) as ds:
-                data = get_dc_tables(ds, from_basins=True)
+            data = get_resource_kernel(rid)["tables"]
         elif query == "trace_list":
-            with s3cc.get_s3_dc_handle(rid) as ds:
-                if "trace" in ds:
-                    data = sorted(ds["trace"].keys())
-                else:
-                    data = []
+            data = get_resource_kernel(rid)["trace_list"]
         else:
             raise logic.ValidationError(
                 f"Invalid query parameter '{query}'!")
@@ -133,9 +147,102 @@ def dcserv(context, data_dict=None):
 
 
 @functools.lru_cache(maxsize=1024)
-def is_dc_resource(res_id):
+def is_dc_resource(res_id) -> bool:
     resource = model.Resource.get(res_id)
     return resource.mimetype in DC_MIME_TYPES
 
 
+def get_resource_kernel(resource_id: str) -> dict:
+    """Return dictionary with most important resource information"""
+    public = not is_resource_private(resource_id)
+    # TODO: Caching `get_resource_kernel_base` is potentially bad for
+    #       memory. Consider storing the data in redis or a local disk cache.
+    r_data = get_resource_kernel_base(resource_id, public=public)
+
+    # The dictionary `r_data` is cached in `get_resource_kernel_base`.
+    # If we complement it, then we modify this dictionary in the cache.
+    # This is fine. It also means we do not have to cache the result
+    # of `get_resource_kernel_complement_condensed`.
+    if not r_data.get("complemented-condensed"):
+        try:
+            get_resource_kernel_complement_condensed(r_data)
+        except BaseException:
+            logger.warning(
+                f"Failed to fetch condensed resource info for {resource_id}")
+
+    return r_data
+
+
+@functools.lru_cache(maxsize=512)
+def get_resource_kernel_base(resource_id, public: bool = False):
+    """Return dictionary with most important resource information
+
+    This method is cached. Complementary information can be added
+    via :func:`get_resource_kernel_complement_condensed`.
+    """
+    r_data = {"id": resource_id,
+              "public": public}
+
+    ds_res = s3cc.get_s3_dc_handle(resource_id, artifact="resource")
+
+    # configuration
+    r_data["config"] = ds_res.config.as_dict(pop_filtering=True)
+    r_data["config"].setdefault("experiment", {})
+    if not r_data["config"]["experiment"]["event count"]:
+        r_data["config"]["experiment"]["event count"] = len(ds_res)
+    # trace list
+    if "trace" in ds_res:
+        r_data["trace_list"] = sorted(ds_res["trace"].keys())
+    # tables
+    r_data["tables"] = get_dc_tables(ds_res, from_basins=True)
+    # logs
+    r_data["logs"] = get_dc_logs(ds_res, from_basins=True)
+    # basin features
+    basin_features = {
+        f"resource-{resource_id[:5]}": ds_res.features_innate,
+    }
+    r_data["basin_features"] = basin_features
+    # basins (for public resources only, since we don't need presigned URLs)
+    if public:
+        r_data["basin_dicts"] = [{
+            "name": f"resource-{resource_id[:5]}",
+            "format": "http",
+            "type": "remote",
+            "mapping": "same",
+            "perishable": False,
+            "key": f"dcor-resource-{resource_id}"
+        }]
+
+    return r_data
+
+
+def get_resource_kernel_complement_condensed(r_data):
+    """Complement dictionary with condensed resource information
+
+    The input dictionary is expected to be created via
+    :func:`get_resource_kernel_base`.
+    """
+    resource_id = r_data["id"]
+    ds_con = s3cc.get_s3_dc_handle(resource_id, artifact="condensed")
+    # condense logs
+    new_logs = get_dc_logs(ds_con, from_basins=True)
+    for ln in new_logs:
+        if ln not in r_data["logs"]:
+            r_data["logs"][ln] = new_logs[ln]
+    # basin features
+    r_data["basin_features"][f"condensed-{resource_id[:5]}"] = \
+        ds_con.features_innate
+    if r_data["public"]:
+        r_data["basin_dicts"].append({
+            "name": f"condensed-{resource_id[:5]}",
+            "format": "http",
+            "type": "remote",
+            "mapping": "same",
+            "perishable": False,
+            "key": f"dcor-condensed-{resource_id}"
+        })
+    r_data["complemented-condensed"] = True
+
+
 atexit.register(is_dc_resource.cache_clear)
+atexit.register(get_resource_kernel_base.cache_clear)

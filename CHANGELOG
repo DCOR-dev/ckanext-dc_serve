@@ -1,3 +1,6 @@
+0.17.2
+ - enh: add basin features to served basin information (#4)
+ - enh: internally cache resource metadata
 0.17.1
  - ci: update GitHub Actions workflow to use Docker for testing
  - ref: don't use deprecated `dcor_shared.get_resource_path`

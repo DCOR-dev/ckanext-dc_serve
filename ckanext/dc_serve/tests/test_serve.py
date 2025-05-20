@@ -13,6 +13,7 @@ import h5py
 import pytest
 
 from dcor_shared.testing import make_dataset_via_s3, synchronous_enqueue_job
+from dcor_shared import s3cc
 
 
 data_path = pathlib.Path(__file__).parent / "data"
@@ -178,17 +179,16 @@ def test_api_dcserv_basin(enqueue_job_mock, app, tmp_path):
             side_effect=synchronous_enqueue_job)
 def test_api_dcserv_basin_v2(enqueue_job_mock, app, tmp_path):
     user = factories.UserWithToken()
-    # Note: `call_action` bypasses authorization!
     create_context = {'ignore_auth': False,
                       'user': user['name'],
                       'api_version': 3}
 
-    _, res_dict = make_dataset_via_s3(
+    _, res_dict1 = make_dataset_via_s3(
         create_context=copy.deepcopy(create_context),
         resource_path=data_path / "calibration_beads_47.rtdc",
         activate=True)
 
-    s3_url = res_dict["s3_url"]
+    s3_url = res_dict1["s3_url"]
 
     # create a dataset
     path_orig = data_path / "calibration_beads_47.rtdc"
@@ -218,10 +218,12 @@ def test_api_dcserv_basin_v2(enqueue_job_mock, app, tmp_path):
         resource_path=path_test,
         activate=True)
 
+    rid = res_dict["id"]
+
     # Version 2 API does not serve any features
     resp = app.get(
         "/api/3/action/dcserv",
-        params={"id": res_dict["id"],
+        params={"id": rid,
                 "query": "feature_list",
                 "version": "2",
                 },
@@ -235,7 +237,7 @@ def test_api_dcserv_basin_v2(enqueue_job_mock, app, tmp_path):
     # Version 2 API does not serve any features
     resp = app.get(
         "/api/3/action/dcserv",
-        params={"id": res_dict["id"],
+        params={"id": rid,
                 "query": "feature",
                 "feature": "area_um",
                 "version": "2",
@@ -249,7 +251,7 @@ def test_api_dcserv_basin_v2(enqueue_job_mock, app, tmp_path):
     # Version two API serves basins
     resp = app.get(
         "/api/3/action/dcserv",
-        params={"id": res_dict["id"],
+        params={"id": rid,
                 "query": "basins",
                 "version": "2",
                 },
@@ -267,7 +269,113 @@ def test_api_dcserv_basin_v2(enqueue_job_mock, app, tmp_path):
     for bn in basins:
         assert bn["type"] == "remote"
         assert bn["format"] == "http"
-        assert bn["name"] in ["condensed", "resource"]
+        assert bn["name"] in [f"condensed-{rid[:5]}", f"resource-{rid[:5]}"]
+
+
+@pytest.mark.ckan_config('ckan.plugins', 'dcor_depot dcor_schemas dc_serve')
+@pytest.mark.usefixtures('clean_db')
+@mock.patch('ckan.plugins.toolkit.enqueue_job',
+            side_effect=synchronous_enqueue_job)
+def test_api_dcserv_basin_v2_public_not_signed(enqueue_job_mock, app):
+    user = factories.UserWithToken()
+    create_context = {'ignore_auth': False,
+                      'user': user['name'],
+                      'api_version': 3}
+
+    _, res_dict = make_dataset_via_s3(
+        create_context=copy.deepcopy(create_context),
+        resource_path=data_path / "calibration_beads_47.rtdc",
+        private=False,
+        activate=True)
+    rid = res_dict["id"]
+
+    # Version two API serves basins
+    resp = app.get(
+        "/api/3/action/dcserv",
+        params={"id": rid,
+                "query": "basins",
+                "version": "2",
+                },
+        headers={"Authorization": user["token"]},
+        status=200
+    )
+    jres = json.loads(resp.body)
+    assert jres["success"]
+    basins = jres["result"]
+
+    for bn in basins:
+        assert bn["type"] == "remote"
+        assert bn["format"] == "http"
+        assert not bn["perishable"]
+        for url in bn["urls"]:
+            assert not url.lower().count("expires")
+
+    bn_res = basins[0]
+    bn_cond = basins[1]
+
+    assert bn_res["name"] == f"resource-{rid[:5]}"
+    assert "deform" in bn_res["features"]
+    assert "image" in bn_res["features"]
+    assert len(bn_res["features"]) == 34
+    assert bn_res["urls"][0] == s3cc.get_s3_url_for_artifact(rid, "resource")
+
+    assert bn_cond["name"] == f"condensed-{rid[:5]}"
+    assert "deform" in bn_cond["features"]
+    assert "image" not in bn_cond["features"]
+    assert "volume" in bn_cond["features"]
+    assert bn_cond["urls"][0] == s3cc.get_s3_url_for_artifact(rid, "condensed")
+
+
+@pytest.mark.ckan_config('ckan.plugins', 'dcor_depot dcor_schemas dc_serve')
+@pytest.mark.usefixtures('clean_db')
+@mock.patch('ckan.plugins.toolkit.enqueue_job',
+            side_effect=synchronous_enqueue_job)
+def test_api_dcserv_basin_v2_private_presigned(enqueue_job_mock, app):
+    user = factories.UserWithToken()
+    create_context = {'ignore_auth': False,
+                      'user': user['name'],
+                      'api_version': 3}
+
+    _, res_dict = make_dataset_via_s3(
+        create_context=copy.deepcopy(create_context),
+        resource_path=data_path / "calibration_beads_47.rtdc",
+        private=True,
+        activate=True)
+    rid = res_dict["id"]
+
+    # Version two API serves basins
+    resp = app.get(
+        "/api/3/action/dcserv",
+        params={"id": rid,
+                "query": "basins",
+                "version": "2",
+                },
+        headers={"Authorization": user["token"]},
+        status=200
+    )
+    jres = json.loads(resp.body)
+    assert jres["success"]
+    basins = jres["result"]
+
+    for bn in basins:
+        assert bn["type"] == "remote"
+        assert bn["format"] == "http"
+        assert bn["perishable"]
+        for url in bn["urls"]:
+            assert url.lower().count("expires")
+
+    bn_res = basins[0]
+    bn_cond = basins[1]
+
+    assert bn_res["name"] == f"resource-{rid[:5]}"
+    assert "deform" in bn_res["features"]
+    assert "image" in bn_res["features"]
+    assert len(bn_res["features"]) == 34
+
+    assert bn_cond["name"] == f"condensed-{rid[:5]}"
+    assert "deform" in bn_cond["features"]
+    assert "image" not in bn_cond["features"]
+    assert "volume" in bn_cond["features"]
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
