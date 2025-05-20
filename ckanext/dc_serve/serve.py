@@ -210,7 +210,8 @@ def get_resource_kernel_base(resource_id, public: bool = False):
             "type": "remote",
             "mapping": "same",
             "perishable": False,
-            "key": f"dcor-resource-{resource_id}"
+            "key": f"dcor-resource-{resource_id}",
+            "urls": [ds_res.path],
         }]
 
     return r_data
@@ -239,7 +240,8 @@ def get_resource_kernel_complement_condensed(r_data):
             "type": "remote",
             "mapping": "same",
             "perishable": False,
-            "key": f"dcor-condensed-{resource_id}"
+            "key": f"dcor-condensed-{resource_id}",
+            "urls": [ds_con.path],
         })
     r_data["complemented-condensed"] = True
 
