@@ -160,7 +160,7 @@ def get_resource_basins_dicts_private(resource_id):
     for artifact in ["condensed", "resource"]:
         signed_url = s3cc.create_presigned_url(resource_id, artifact=artifact)
         basin_dicts.append({
-            "name": f"dcor-presigned-{artifact}-{resource_id[:5]}",
+            "name": f"{artifact}-{resource_id[:5]}",
             "format": "http",
             "type": "remote",
             "mapping": "same",
