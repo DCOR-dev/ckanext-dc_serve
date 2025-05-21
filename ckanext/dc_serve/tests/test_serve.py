@@ -114,7 +114,7 @@ def test_api_dcserv_error(enqueue_job_mock, app):
     assert "Invalid query parameter 'peter'" in jres["error"]["message"]
 
 
-@pytest.mark.ckan_config('ckan.plugins', 'dcor_depot dcor_schemas dc_serve')
+@pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
 @pytest.mark.usefixtures('clean_db')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
@@ -173,7 +173,7 @@ def test_api_dcserv_basin(enqueue_job_mock, app, tmp_path):
         assert basin["basin_descr"] == "an example test basin"
 
 
-@pytest.mark.ckan_config('ckan.plugins', 'dcor_depot dcor_schemas dc_serve')
+@pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
 @pytest.mark.usefixtures('clean_db')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
@@ -272,7 +272,7 @@ def test_api_dcserv_basin_v2(enqueue_job_mock, app, tmp_path):
         assert bn["name"] in [f"condensed-{rid[:5]}", f"resource-{rid[:5]}"]
 
 
-@pytest.mark.ckan_config('ckan.plugins', 'dcor_depot dcor_schemas dc_serve')
+@pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
 @pytest.mark.usefixtures('clean_db')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
@@ -326,7 +326,7 @@ def test_api_dcserv_basin_v2_public_not_signed(enqueue_job_mock, app):
     assert bn_cond["urls"][0] == s3cc.get_s3_url_for_artifact(rid, "condensed")
 
 
-@pytest.mark.ckan_config('ckan.plugins', 'dcor_depot dcor_schemas dc_serve')
+@pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
 @pytest.mark.usefixtures('clean_db')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
@@ -478,7 +478,7 @@ def test_api_dcserv_metadata(enqueue_job_mock, app):
     assert jres["result"]["setup"]["channel width"] == 20
 
 
-@pytest.mark.ckan_config('ckan.plugins', 'dcor_depot dcor_schemas dc_serve')
+@pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
 @pytest.mark.usefixtures('clean_db')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
@@ -547,7 +547,7 @@ def test_api_dcserv_tables(enqueue_job_mock, app):
     assert "brightness" in names
 
 
-@pytest.mark.ckan_config('ckan.plugins', 'dcor_depot dcor_schemas dc_serve')
+@pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
 @pytest.mark.usefixtures('clean_db')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
@@ -582,7 +582,7 @@ def test_api_dcserv_trace_list(enqueue_job_mock, app):
             assert key in jres["result"]
 
 
-@pytest.mark.ckan_config('ckan.plugins', 'dcor_depot dcor_schemas dc_serve')
+@pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
 @pytest.mark.usefixtures('clean_db')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)

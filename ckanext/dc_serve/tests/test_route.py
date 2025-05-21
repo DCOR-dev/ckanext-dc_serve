@@ -13,7 +13,7 @@ from dcor_shared.testing import make_dataset_via_s3, synchronous_enqueue_job
 data_path = pathlib.Path(__file__).parent / "data"
 
 
-@pytest.mark.ckan_config('ckan.plugins', 'dcor_depot dcor_schemas dc_serve')
+@pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
 @pytest.mark.usefixtures('clean_db')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
@@ -71,7 +71,7 @@ def test_route_redircet_condensed_to_s3_private(enqueue_job_mock, app):
     assert len(redirect.location) > len(redirect_stem)
 
 
-@pytest.mark.ckan_config('ckan.plugins', 'dcor_depot dcor_schemas dc_serve')
+@pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
 @pytest.mark.usefixtures('clean_db')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
@@ -112,7 +112,7 @@ def test_route_condensed_to_s3_public(enqueue_job_mock, app):
                                         f"{rid[:3]}/{rid[3:6]}/{rid[6:]}")
 
 
-@pytest.mark.ckan_config('ckan.plugins', 'dcor_depot dcor_schemas dc_serve')
+@pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
 @pytest.mark.usefixtures('clean_db')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
