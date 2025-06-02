@@ -2,6 +2,7 @@ import atexit
 import copy
 import functools
 import logging
+import time
 
 import ckan.logic as logic
 import ckan.model as model
@@ -158,13 +159,21 @@ def get_resource_basins_dicts_private(resource_id):
     """
     basin_dicts = []
     for artifact in ["condensed", "resource"]:
-        signed_url = s3cc.create_presigned_url(resource_id, artifact=artifact)
+        time_request = time.time()
+        signed_url, expires_at = s3cc.create_presigned_url(
+            resource_id,
+            artifact=artifact,
+            expiration=3600,
+            ret_expiration=True
+            )
         basin_dicts.append({
             "name": f"{artifact}-{resource_id[:5]}",
             "format": "http",
             "type": "remote",
             "mapping": "same",
             "perishable": True,
+            "time_request": time_request,
+            "time_expiration": expires_at,
             "key": f"dcor-presigned-{artifact}-{resource_id}",
             "urls": [signed_url],
         })

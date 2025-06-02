@@ -1,3 +1,6 @@
+0.17.3
+ - enh: return private basin URL creation and expiration time
+ - setup: bump dcor_shared to 0.13.1
 0.17.2
  - enh: add basin features to served basin information (#4)
  - enh: internally cache resource metadata

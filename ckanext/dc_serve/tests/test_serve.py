@@ -3,6 +3,7 @@ import json
 import pathlib
 from unittest import mock
 import shutil
+import time
 import uuid
 
 import ckan.tests.factories as factories
@@ -361,6 +362,61 @@ def test_api_dcserv_basin_v2_private_presigned(enqueue_job_mock, app):
         assert bn["type"] == "remote"
         assert bn["format"] == "http"
         assert bn["perishable"]
+        for url in bn["urls"]:
+            assert url.lower().count("expires")
+
+    bn_cond = basins[0]
+    bn_res = basins[1]
+
+    assert bn_res["name"] == f"resource-{rid[:5]}"
+    assert "deform" in bn_res["features"]
+    assert "image" in bn_res["features"]
+    assert len(bn_res["features"]) == 34
+
+    assert bn_cond["name"] == f"condensed-{rid[:5]}"
+    assert "deform" in bn_cond["features"]
+    assert "image" not in bn_cond["features"]
+    assert "volume" in bn_cond["features"]
+
+
+@pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
+@pytest.mark.usefixtures('clean_db')
+@mock.patch('ckan.plugins.toolkit.enqueue_job',
+            side_effect=synchronous_enqueue_job)
+def test_api_dcserv_basin_v2_private_presigned_expiration_time(
+        enqueue_job_mock, app):
+    user = factories.UserWithToken()
+    create_context = {'ignore_auth': False,
+                      'user': user['name'],
+                      'api_version': 3}
+
+    _, res_dict = make_dataset_via_s3(
+        create_context=copy.deepcopy(create_context),
+        resource_path=data_path / "calibration_beads_47.rtdc",
+        private=True,
+        activate=True)
+    rid = res_dict["id"]
+
+    # Version two API serves basins
+    resp = app.get(
+        "/api/3/action/dcserv",
+        params={"id": rid,
+                "query": "basins",
+                "version": "2",
+                },
+        headers={"Authorization": user["token"]},
+        status=200
+    )
+    jres = json.loads(resp.body)
+    assert jres["success"]
+    basins = jres["result"]
+
+    for bn in basins:
+        assert bn["type"] == "remote"
+        assert bn["format"] == "http"
+        assert bn["perishable"]
+        assert bn["time_request"] < time.time()
+        assert bn["time_expiration"] > time.time() + 3000
         for url in bn["urls"]:
             assert url.lower().count("expires")
 
