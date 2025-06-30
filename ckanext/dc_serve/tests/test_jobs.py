@@ -24,7 +24,8 @@ import dcor_shared
 
 
 from dcor_shared.testing import (
-    make_dataset_via_s3, make_resource_via_s3, synchronous_enqueue_job
+    activate_dataset, make_dataset_via_s3, make_resource_via_s3,
+    synchronous_enqueue_job
 )
 
 
@@ -189,6 +190,9 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin(
         dataset_id=ds_dict["id"],
         ret_dict=True,
     )
+
+    # activate the dataset
+    activate_dataset(ds_dict["id"])
 
     bucket_name = dcor_shared.get_ckan_config_option(
         "dcor_object_store.bucket_name").format(
