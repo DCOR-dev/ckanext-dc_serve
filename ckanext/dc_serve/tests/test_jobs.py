@@ -159,6 +159,7 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin(
     # Open the file in dclab, export a subset of deformation features
     downstream_path = "downstream_data.rtdc"
     with dclab.new_dataset(upstream_path) as ds:
+        assert "userdef3" in ds
         ds.filter.manual[:] = False
         ds.filter.manual[2:10] = True
         ds.apply_filter()
@@ -171,7 +172,7 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin(
                        )
 
     # Make sure that worked
-    with dclab.new_dataset(downstream_path):
+    with dclab.new_dataset(downstream_path) as ds:
         assert "userdef3" in ds.features_basin
         assert "userdef3" not in ds.features_innate
         assert np.all(ds["userdef3"] == np.arange(2, 10))
