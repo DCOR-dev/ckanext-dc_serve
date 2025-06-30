@@ -156,6 +156,9 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin(
     with h5py.File(upstream_path, "a") as hup:
         hup["events/userdef3"] = np.arange(len(hup["events/deform"]))
         hup.attrs["experiment:measurement identifier"] = mid
+        # Remove the contour feature which is not well-supported when
+        # subsetting basins.
+        del hup["events/contour"]
 
     # Open the file in dclab, export a subset of deformation features
     downstream_path = tmp_path / "downstream_data.rtdc"
