@@ -181,6 +181,7 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin(
     # Create a draft dataset using the upstream dataset
     ds_dict, _ = make_dataset_via_s3(
         resource_path=upstream_path,
+        private=False,
         activate=False)
 
     # Add the downstream resource to it
@@ -188,6 +189,7 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin(
         resource_path=downstream_path,
         organization_id=ds_dict["organization"]["id"],
         dataset_id=ds_dict["id"],
+        private=False,
         ret_dict=True,
     )
 
