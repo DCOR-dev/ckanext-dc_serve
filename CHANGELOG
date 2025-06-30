@@ -1,4 +1,5 @@
-0.17.4
+0.18.0
+ - feat: auto-generate intra-dataset upstream basins if applicable
  - ref: simplify compression background job code
 0.17.3
  - enh: return private basin URL creation and expiration time

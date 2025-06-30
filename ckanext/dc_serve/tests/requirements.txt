@@ -1,3 +1,5 @@
+dclab
+h5py
 pytest
 pytest-ckan
 pytest_factoryboy

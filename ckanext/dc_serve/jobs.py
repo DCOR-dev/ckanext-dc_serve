@@ -4,7 +4,7 @@ import tempfile
 import traceback
 import warnings
 
-from ckan import common
+from ckan import common, model
 import ckan.plugins.toolkit as toolkit
 from dclab import RTDCWriter
 from dclab.cli import condense_dataset
@@ -114,6 +114,12 @@ def _generate_condensed_resource(res_dict, path_cond):
     - "DCOR public S3 via HTTP" basin (Public resource access via HTTP)
       This basin only works for public resources and facilitates fast
       resource access via HTTP.
+    - "DCOR intra-dataset" basin (Upstream DCOR intra-dataset resource):
+      If the original resource has a file-based basin that is part of the
+      same DCOR dataset (must be uploaded beforehand), then this basin is
+      a reference to it based on the DCOR API. The use case is data
+      processed with dcnum when exploiting basins. Without this basin,
+      image data would not be available when opening "_dcn.rtdc" files.
     """
     rid = res_dict["id"]
     # Now we would like to combine feature data
@@ -137,7 +143,9 @@ def _generate_condensed_resource(res_dict, path_cond):
         feats_dst = set(h5_cond["events"].keys())
         # Features that are in the input, but not in the
         # condensed file.
-        feats_upstream = sorted(feats_src - feats_dst)
+        feats_input = sorted(feats_src - feats_dst)
+        # Additional upstream basins within this DCOR dataset.
+        basins_upstream = _get_intra_dataset_upstream_basins(res_dict, ds)
 
     # Write DCOR basins
     with RTDCWriter(path_cond) as hw:
@@ -151,7 +159,7 @@ def _generate_condensed_resource(res_dict, path_cond):
             basin_format="dcor",
             basin_locs=[dcor_url],
             basin_descr="Original access via DCOR API",
-            basin_feats=feats_upstream,
+            basin_feats=feats_input,
             verify=False)
         # S3
         s3_endpoint = common.config[
@@ -170,7 +178,7 @@ def _generate_condensed_resource(res_dict, path_cond):
             basin_format="s3",
             basin_locs=[s3_url],
             basin_descr="Direct access via S3",
-            basin_feats=feats_upstream,
+            basin_feats=feats_input,
             verify=False)
         # HTTP (only works for public resources)
         hw.store_basin(
@@ -179,11 +187,47 @@ def _generate_condensed_resource(res_dict, path_cond):
             basin_format="http",
             basin_locs=[s3_url],
             basin_descr="Public resource access via HTTP",
-            basin_feats=feats_upstream,
+            basin_feats=feats_input,
             verify=False)
+
+        # Additional upstream basins
+        for bn_dict in basins_upstream:
+            hw.store_basin(verify=False, **bn_dict)
 
     # Upload the condensed file to S3
     s3cc.upload_artifact(resource_id=rid,
                          path_artifact=path_cond,
                          artifact="condensed",
                          override=True)
+
+
+def _get_intra_dataset_upstream_basins(res_dict, ds) -> list[dict]:
+    """Search for intra-dataset resources and return corresponding basins"""
+    site_url = common.config["ckan.site_url"]
+
+    # Create a list of all resources in the dataset so far.
+    pkg = model.Package.get(res_dict["package_id"])
+    res_map_name2id = {}
+    for res in pkg.resources:
+        res_map_name2id[res.name] = res.id
+
+    # Iterate through all basins in `ds` and create basin-create dictionaries.
+    basin_dicts = []
+    for bn_dict in ds.basins_get_dicts():
+        if bn_dict["type"] == "file" and bn_dict["format"] == "hdf5":
+            # check whether the file name is in the list of resources.
+            for res_name in res_map_name2id:
+                if res_name in bn_dict["paths"]:
+                    # upstream resource ID
+                    u_rid = res_map_name2id[res_name]
+                    u_dcor_url = f"{site_url}/api/3/action/dcserv?id={u_rid}"
+                    basin_dicts.append({
+                        "basin_name": f"DCOR intra-dataset for {res_name}",
+                        "basin_type": "remote",
+                        "basin_format": "dcor",
+                        "basin_locs": [u_dcor_url],
+                        "basin_descr": "Upstream DCOR intra-dataset resource",
+                        "basin_feats": bn_dict.get("features"),
+                        "basin_map": bn_dict.get("mapping"),
+                    })
+    return basin_dicts

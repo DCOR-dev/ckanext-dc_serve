@@ -28,7 +28,7 @@ classifiers = [
 license = {text = "GNU Affero General Public License v3 or later (AGPLv3+)"}
 dependencies = [
     "ckan>=2.10.4, <3",
-    "dclab>=0.60.9",
+    "dclab>=0.64.1",
     "dcor_shared>=0.13.1",
 ]
 dynamic = ["version"]
