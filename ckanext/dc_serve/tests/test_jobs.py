@@ -185,12 +185,11 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin(
         activate=False)
 
     # Add the downstream resource to it
-    res_dn_dict = make_resource_via_s3(
+    rid = make_resource_via_s3(
         resource_path=downstream_path,
         organization_id=ds_dict["organization"]["id"],
         dataset_id=ds_dict["id"],
         private=False,
-        ret_dict=True,
     )
 
     # activate the dataset
@@ -199,7 +198,6 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin(
     bucket_name = dcor_shared.get_ckan_config_option(
         "dcor_object_store.bucket_name").format(
         organization_id=ds_dict["organization"]["id"])
-    rid = res_dn_dict["id"]
 
     object_name = f"condensed/{rid[:3]}/{rid[3:6]}/{rid[6:]}"
     endpoint = dcor_shared.get_ckan_config_option(
