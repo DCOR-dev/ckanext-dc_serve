@@ -215,6 +215,12 @@ def _get_intra_dataset_upstream_basins(res_dict, ds) -> list[dict]:
     basin_dicts = []
     for bn_dict in ds.basins_get_dicts():
         if bn_dict["type"] == "file" and bn_dict["format"] == "hdf5":
+            # Fetch the correct basin mapping feature data
+            if map_feat := bn_dict.get("mapping"):
+                basin_map = ds[map_feat]
+            else:
+                basin_map = None
+
             # check whether the file name is in the list of resources.
             for res_name in res_map_name2id:
                 if res_name in bn_dict["paths"]:
@@ -228,6 +234,6 @@ def _get_intra_dataset_upstream_basins(res_dict, ds) -> list[dict]:
                         "basin_locs": [u_dcor_url],
                         "basin_descr": "Upstream DCOR intra-dataset resource",
                         "basin_feats": bn_dict.get("features"),
-                        "basin_map": bn_dict.get("mapping"),
+                        "basin_map": basin_map,
                     })
     return basin_dicts
