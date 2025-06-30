@@ -157,7 +157,7 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin(
         hup.attrs["experiment:measurement identifier"] = mid
 
     # Open the file in dclab, export a subset of deformation features
-    downstream_path = "downstream_data.rtdc"
+    downstream_path = tmp_path / "downstream_data.rtdc"
     with dclab.new_dataset(upstream_path) as ds:
         assert "userdef3" in ds
         ds.filter.manual[:] = False
