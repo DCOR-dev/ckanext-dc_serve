@@ -217,7 +217,7 @@ def _get_intra_dataset_upstream_basins(res_dict, ds) -> list[dict]:
         if bn_dict["type"] == "file" and bn_dict["format"] == "hdf5":
             # Fetch the correct basin mapping feature data
             if map_feat := bn_dict.get("mapping"):
-                basin_map = ds[map_feat]
+                basin_map = ds[map_feat][:]
             else:
                 basin_map = None
 
