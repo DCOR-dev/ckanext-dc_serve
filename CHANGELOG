@@ -1,3 +1,5 @@
+0.17.4
+ - ref: simplify compression background job code
 0.17.3
  - enh: return private basin URL creation and expiration time
  - setup: bump dcor_shared to 0.13.1

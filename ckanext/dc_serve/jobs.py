@@ -89,79 +89,101 @@ def generate_condensed_resource(resource, override=False):
                 # then several processes would end up condensing the same
                 # resource.
                 if fl.is_locked:
-                    with get_dc_instance(rid) as ds, \
-                            h5py.File(path_cond, "w") as h5_cond:
-                        # Features available in the input file
-                        feats_src = set(ds.features_innate)
-
-                        # Condense the dataset (do not store any warning
-                        # messages during instantiation, because we are
-                        # scared of leaking credentials).
-                        with warnings.catch_warnings(record=True) as w:
-                            warnings.simplefilter("always")
-                            condense_dataset(ds=ds,
-                                             h5_cond=h5_cond,
-                                             store_ancillary_features=True,
-                                             store_basin_features=True,
-                                             warnings_list=w)
-
-                        # Features available in the condensed file
-                        feats_dst = set(h5_cond["events"].keys())
-                        # Features that are in the input, but not in the
-                        # condensed file.
-                        feats_upstream = sorted(feats_src - feats_dst)
-
-                    # Write DCOR basins
-                    with RTDCWriter(path_cond) as hw:
-                        # DCOR
-                        site_url = common.config["ckan.site_url"]
-                        rid = resource["id"]
-                        dcor_url = f"{site_url}/api/3/action/dcserv?id={rid}"
-                        hw.store_basin(
-                            basin_name="DCOR dcserv",
-                            basin_type="remote",
-                            basin_format="dcor",
-                            basin_locs=[dcor_url],
-                            basin_descr="Original access via DCOR API",
-                            basin_feats=feats_upstream,
-                            verify=False)
-                        # S3
-                        s3_endpoint = common.config[
-                            "dcor_object_store.endpoint_url"]
-                        ds_dict = toolkit.get_action('package_show')(
-                            admin_context(),
-                            {'id': resource["package_id"]})
-                        bucket_name = common.config[
-                            "dcor_object_store.bucket_name"].format(
-                            organization_id=ds_dict["organization"]["id"])
-                        obj_name = f"resource/{rid[:3]}/{rid[3:6]}/{rid[6:]}"
-                        s3_url = f"{s3_endpoint}/{bucket_name}/{obj_name}"
-                        hw.store_basin(
-                            basin_name="DCOR direct S3",
-                            basin_type="remote",
-                            basin_format="s3",
-                            basin_locs=[s3_url],
-                            basin_descr="Direct access via S3",
-                            basin_feats=feats_upstream,
-                            verify=False)
-                        # HTTP (only works for public resources)
-                        hw.store_basin(
-                            basin_name="DCOR public S3 via HTTP",
-                            basin_type="remote",
-                            basin_format="http",
-                            basin_locs=[s3_url],
-                            basin_descr="Public resource access via HTTP",
-                            basin_feats=feats_upstream,
-                            verify=False)
-
-                    # Upload the condensed file to S3
-                    s3cc.upload_artifact(resource_id=rid,
-                                         path_artifact=path_cond,
-                                         artifact="condensed",
-                                         override=True)
+                    _generate_condensed_resource(res_dict=resource,
+                                                 path_cond=path_cond)
                     return True
         except BaseException:
             log.error(traceback.format_exc())
         finally:
             path_cond.unlink(missing_ok=True)
     return False
+
+
+def _generate_condensed_resource(res_dict, path_cond):
+    """Condense dataset and add all relevant basins
+
+    Creating the condensed resource (new file with scalar-only features)
+    is only the first task of this function. The following basins are
+    created as well:
+
+    - "DCOR dcserv" basin (Original access via DCOR API):
+      This basin can be accessed by every user with the necessary permissions.
+    - "DCOR direct S3" basin (Direct access via S3):
+      This basin can only be accessed with users that have S3 credentials
+      set-up (this is not a normal use-case).
+    - "DCOR public S3 via HTTP" basin (Public resource access via HTTP)
+      This basin only works for public resources and facilitates fast
+      resource access via HTTP.
+    """
+    rid = res_dict["id"]
+    # Now we would like to combine feature data
+    with get_dc_instance(rid) as ds, \
+            h5py.File(path_cond, "w") as h5_cond:
+        # Features available in the input file
+        feats_src = set(ds.features_innate)
+
+        # Condense the dataset (do not store any warning
+        # messages during instantiation, because we are
+        # scared of leaking credentials).
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            condense_dataset(ds=ds,
+                             h5_cond=h5_cond,
+                             store_ancillary_features=True,
+                             store_basin_features=True,
+                             warnings_list=w)
+
+        # Features available in the condensed file
+        feats_dst = set(h5_cond["events"].keys())
+        # Features that are in the input, but not in the
+        # condensed file.
+        feats_upstream = sorted(feats_src - feats_dst)
+
+    # Write DCOR basins
+    with RTDCWriter(path_cond) as hw:
+        # DCOR
+        site_url = common.config["ckan.site_url"]
+        rid = res_dict["id"]
+        dcor_url = f"{site_url}/api/3/action/dcserv?id={rid}"
+        hw.store_basin(
+            basin_name="DCOR dcserv",
+            basin_type="remote",
+            basin_format="dcor",
+            basin_locs=[dcor_url],
+            basin_descr="Original access via DCOR API",
+            basin_feats=feats_upstream,
+            verify=False)
+        # S3
+        s3_endpoint = common.config[
+            "dcor_object_store.endpoint_url"]
+        ds_dict = toolkit.get_action('package_show')(
+            admin_context(),
+            {'id': res_dict["package_id"]})
+        bucket_name = common.config[
+            "dcor_object_store.bucket_name"].format(
+            organization_id=ds_dict["organization"]["id"])
+        obj_name = f"resource/{rid[:3]}/{rid[3:6]}/{rid[6:]}"
+        s3_url = f"{s3_endpoint}/{bucket_name}/{obj_name}"
+        hw.store_basin(
+            basin_name="DCOR direct S3",
+            basin_type="remote",
+            basin_format="s3",
+            basin_locs=[s3_url],
+            basin_descr="Direct access via S3",
+            basin_feats=feats_upstream,
+            verify=False)
+        # HTTP (only works for public resources)
+        hw.store_basin(
+            basin_name="DCOR public S3 via HTTP",
+            basin_type="remote",
+            basin_format="http",
+            basin_locs=[s3_url],
+            basin_descr="Public resource access via HTTP",
+            basin_feats=feats_upstream,
+            verify=False)
+
+    # Upload the condensed file to S3
+    s3cc.upload_artifact(resource_id=rid,
+                         path_artifact=path_cond,
+                         artifact="condensed",
+                         override=True)
