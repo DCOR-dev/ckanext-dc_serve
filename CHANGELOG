@@ -1,3 +1,5 @@
+1.0.0
+ - declare first stable release
 0.18.0
  - feat: auto-generate intra-dataset upstream basins if applicable
  - ref: simplify compression background job code
