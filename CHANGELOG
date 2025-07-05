@@ -1,3 +1,5 @@
+1.0.2
+ - enh: only print infor about generating new resource when this is the case
 1.0.1
  - maintenance release
 1.0.0

@@ -50,7 +50,6 @@ def generate_condensed_resource(resource, override=False):
                 break
 
     rid = resource["id"]
-    log.info(f"Generating condensed resource {rid}")
     wait_for_resource(rid)
     if (resource.get('mimetype', '') in DC_MIME_TYPES
         # Check whether the file already exists on S3
@@ -58,6 +57,7 @@ def generate_condensed_resource(resource, override=False):
              or not s3cc.artifact_exists(resource_id=rid,
                                          artifact="condensed"))):
         # Create the condensed file in a cache location
+        log.info(f"Generating condensed resource {rid}")
         cache_loc = common.config.get("ckanext.dc_serve.tmp_dir")
         if not cache_loc:
             cache_loc = None
