@@ -216,19 +216,20 @@ def _get_intra_dataset_upstream_basins(res_dict, ds) -> list[dict]:
     for bn_dict in ds.basins_get_dicts():
         if bn_dict["type"] == "file" and bn_dict["format"] == "hdf5":
             # Fetch the correct basin mapping feature data
-            if map_feat := bn_dict.get("mapping"):
-                basin_map = ds[map_feat][:]
-            else:
+            map_data = bn_dict.get("mapping", "same")
+            if map_data == "same":
                 basin_map = None
+            else:
+                basin_map = ds[map_data][:]
 
             # check whether the file name is in the list of resources.
-            for res_name in res_map_name2id:
-                if res_name in bn_dict["paths"]:
+            for res in pkg.resources:
+                if _is_basin_of_dataset(ds, res, bn_dict):
                     # upstream resource ID
-                    u_rid = res_map_name2id[res_name]
+                    u_rid = res_map_name2id[res.name]
                     u_dcor_url = f"{site_url}/api/3/action/dcserv?id={u_rid}"
                     basin_dicts.append({
-                        "basin_name": f"DCOR intra-dataset for {res_name}",
+                        "basin_name": f"DCOR intra-dataset for {res.name}",
                         "basin_type": "remote",
                         "basin_format": "dcor",
                         "basin_locs": [u_dcor_url],
@@ -237,3 +238,50 @@ def _get_intra_dataset_upstream_basins(res_dict, ds) -> list[dict]:
                         "basin_map": basin_map,
                     })
     return basin_dicts
+
+
+def _is_basin_of_dataset(ds,
+                         resource_basin,
+                         basin_dict,
+                         ):
+    """Check whether a CKAN resource is a basin for a dataset
+
+    Parameters
+    ----------
+    ds:
+        Instance of a dclab dataset
+    resource_basin:
+        CKAN resource object that is a potential basin for `ds`
+    basin_dict:
+        Corresponding basin dictionary to check against
+    """
+    if resource_basin.name in basin_dict["paths"]:
+        # This is the simplest case. The file was uploaded directly
+        # alongside its basin using the same name.
+        return True
+
+    # Open the potential basin and check its run identifier.
+    ds_runid = ds.get_measurement_identifier()
+    with get_dc_instance(resource_basin.id) as ds_bn:
+        bn_runid = ds_bn.get_measurement_identifier()
+
+    if not bn_runid:
+        # No run identifier specified -> no basin inference possible.
+        return False
+
+    mapping_is_same = basin_dict.get("mapping", "same") == "same"
+
+    if mapping_is_same and bn_runid == ds_runid:
+        # This is an ideal case. Both run identifiers match and the mapping
+        # is identical.
+        return True
+
+    elif not mapping_is_same and ds_runid.rsplit("_", 1)[0] == bn_runid:
+        # This is a slightly more complicated cases. If you split the
+        # run identifiers with an underscore (dclab 0.65.0 and dcnum 0.25.11
+        # correctly support this), then the referrer has a run identifier
+        # that starts with that of the basin.
+        return True
+
+    # None of the above cases matched. This is not a basin of ds.
+    return False
