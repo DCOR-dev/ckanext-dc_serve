@@ -199,6 +199,10 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin(
     # activate the dataset
     activate_dataset(ds_dict["id"])
 
+    # remove the local files
+    upstream_path.unlink()
+    downstream_path.unlink()
+
     bucket_name = dcor_shared.get_ckan_config_option(
         "dcor_object_store.bucket_name").format(
         organization_id=ds_dict["organization"]["id"])
@@ -310,6 +314,11 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin_ren(
     )
     # activate the dataset
     activate_dataset(ds_dict["id"])
+
+    # remove the local files
+    downstream_path.unlink()
+    midstream_path.unlink()
+    upstream_path.unlink()
 
     ds_dict = helpers.call_action("package_show", id=ds_dict["id"])
     res_names = [r["name"] for r in ds_dict["resources"]]
@@ -432,6 +441,11 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin_ctl(
     )
     # activate the dataset
     activate_dataset(ds_dict["id"])
+
+    # remove the local files
+    upstream_path.unlink()
+    downstream_path1.unlink()
+    downstream_path2.unlink()
 
     ds_dict = helpers.call_action("package_show", id=ds_dict["id"])
     res_names = [r["name"] for r in ds_dict["resources"]]
