@@ -272,10 +272,10 @@ def get_resource_kernel_complement_condensed(r_data):
     # basin features (include all features, not only innate features,
     # because we might have intra-dataset basins)
     # We include all features that are listed on the first level of basins.
-    basin_feats = []
+    basin_feats = ds_con.features_innate
     for bn_dict in ds_con.basins_get_dicts():
         basin_feats += bn_dict.get("features", []) or []
-    basin_feats = list(set(basin_feats))
+    basin_feats = sorted(set(basin_feats))
     r_data["basin_features"][f"condensed-{resource_id[:5]}"] = basin_feats
     r_data["complemented-condensed"] = True
 
