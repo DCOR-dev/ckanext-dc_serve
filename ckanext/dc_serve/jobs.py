@@ -227,6 +227,13 @@ def _get_intra_dataset_upstream_basins(res_dict, ds) -> list[dict]:
                 if _is_basin_of_dataset(ds, res, bn_dict):
                     # upstream resource ID
                     u_rid = res_map_name2id[res.name]
+
+                    # get the actual features available for this basin
+                    ds_s3_res = s3cc.get_s3_dc_handle(u_rid, "resource")
+                    ds_s3_con = s3cc.get_s3_dc_handle(u_rid, "condensed")
+                    basin_feats = list(set(
+                        ds_s3_res.features_innate + ds_s3_con.features_innate))
+
                     u_dcor_url = f"{site_url}/api/3/action/dcserv?id={u_rid}"
                     basin_dicts.append({
                         "basin_name": f"DCOR intra-dataset for {res.name}",
@@ -234,9 +241,10 @@ def _get_intra_dataset_upstream_basins(res_dict, ds) -> list[dict]:
                         "basin_format": "dcor",
                         "basin_locs": [u_dcor_url],
                         "basin_descr": "Upstream DCOR intra-dataset resource",
-                        "basin_feats": bn_dict.get("features"),
+                        "basin_feats": basin_feats,
                         "basin_map": basin_map,
                     })
+
     return basin_dicts
 
 
