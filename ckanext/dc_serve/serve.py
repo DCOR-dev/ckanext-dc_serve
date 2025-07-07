@@ -269,9 +269,9 @@ def get_resource_kernel_complement_condensed(r_data):
     for ln in new_logs:
         if ln not in r_data["logs"]:
             r_data["logs"][ln] = new_logs[ln]
-    # basin features
-    r_data["basin_features"][f"condensed-{resource_id[:5]}"] = \
-        ds_con.features_innate
+    # basin features (include all features, not only innate features,
+    # because we might have intra-dataset basins)
+    r_data["basin_features"][f"condensed-{resource_id[:5]}"] = ds_con.features
     r_data["complemented-condensed"] = True
 
 
