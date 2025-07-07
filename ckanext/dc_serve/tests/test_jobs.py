@@ -253,7 +253,7 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin_ren(
 
     # Add a link in-between that only exports a few features.
     with dclab.new_dataset(upstream_path) as ds:
-        ds.export.hdf5(path=downstream_path,
+        ds.export.hdf5(path=midstream_path,
                        features=["deform", "area_um"],
                        filtered=False,
                        logs=True,
@@ -350,7 +350,7 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin_ren(
 
     # Download the condensed resource3
     response_3 = requests.get(cond_url_3)
-    dl_path_3 = tmp_path / "middle.rtdc"
+    dl_path_3 = tmp_path / "down.rtdc"
     with dl_path_3.open("wb") as fd:
         fd.write(response_3.content)
 
