@@ -346,7 +346,7 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin_ren(
         assert "userdef3" in ds.features
         assert "userdef3" in ds.features_basin
         assert "userdef3" not in ds.features_innate
-        assert np.all(ds["userdef3"] == np.arange(10))
+        assert np.all(ds["userdef3"] == np.arange(47))
 
     # Download the condensed resource3
     response_3 = requests.get(cond_url_3)
