@@ -474,6 +474,7 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin_ctl(
 
     # This is the subsetted dataset.
     with dclab.new_dataset(pathlib.Path(dl_path_3)) as ds:
-        assert "deform" not in ds.features_innate
+        assert "deform" in ds.features_innate
         # check for false basin assignment
+        assert "area_um" not in ds.features
         assert "userdef3" not in ds.features
