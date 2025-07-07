@@ -282,7 +282,7 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin_ren(
         assert np.all(ds["userdef3"] == np.arange(2, 10))
 
     # Create a draft dataset using the upstream dataset
-    ds_dict, _ = make_dataset_via_s3(
+    ds_dict = make_dataset_via_s3(
         private=False,
         activate=False)
 
