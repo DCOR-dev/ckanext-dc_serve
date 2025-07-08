@@ -216,6 +216,20 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin(
     assert response.ok, "resource is public"
     assert response.status_code == 200
 
+    print("Intra-dataset basins:",
+          dcor_shared.get_ckan_config_option(
+              "ckanext.dc_serve.enable_intra_dataset_basins"
+          ))
+
+    # Open the resource online
+    with dclab.new_dataset(rid,
+                           host=dcor_shared.get_ckan_config_option("site_url")
+                           ) as ds:
+        assert "userdef3" in ds.features
+        assert "userdef3" in ds.features_basin
+        assert "userdef3" not in ds.features_innate
+        assert np.all(ds["userdef3"] == np.arange(2, 10))
+
     # Download the condensed resource
     dl_path = tmp_path / "downstream.rtdc"
     with dl_path.open("wb") as fd:
