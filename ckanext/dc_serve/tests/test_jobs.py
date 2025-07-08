@@ -223,8 +223,8 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin(
 
     # Open the resource online
     with dclab.new_dataset(rid,
-                           host=dcor_shared.get_ckan_config_option("site_url")
-                           ) as ds:
+                           host=dcor_shared.get_ckan_config_option(
+                               "ckan.site_url")) as ds:
         assert "userdef3" in ds.features
         assert "userdef3" in ds.features_basin
         assert "userdef3" not in ds.features_innate
