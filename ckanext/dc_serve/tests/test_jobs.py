@@ -250,7 +250,7 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin(
         for bn_dict in basins:
             if bn_dict["name"].count("DCOR intra-dataset"):
                 assert "userdef3" in bn_dict["features"]
-            break
+                break
         else:
             assert False, "no intra-dataset basin"
 
@@ -387,11 +387,12 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin_ren(
         assert "area_um" in ds.features_innate
         assert "userdef3" not in ds.features_innate
         basins = ds.basins_get_dicts()
+        print("BASINS2", basins)
         for bn_dict in basins:
             if bn_dict["name"].count("DCOR intra-dataset"):
                 assert bn_dict["mapping"] == "same"
                 assert "userdef3" in bn_dict["features"]
-            break
+                break
         else:
             assert False, "no intra-dataset basin"
 
@@ -405,13 +406,13 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin_ren(
     with dclab.new_dataset(pathlib.Path(dl_path_3)) as ds:
         assert "area_um" not in ds.features_innate
         assert "userdef3" not in ds.features_innate
+        basins = ds.basins_get_dicts()
+        print("BASINS3", basins)
         for bn_dict in basins:
             if bn_dict["name"].count("DCOR intra-dataset"):
-                print("BASIN", bn_dict)
-                print(f"RIDS {rid1=}, {rid2=}, {rid3=}")
                 assert bn_dict["mapping"] == "basinmap0"
                 assert "userdef3" in bn_dict["features"]
-            break
+                break
         else:
             assert False, "no intra-dataset basin"
 
