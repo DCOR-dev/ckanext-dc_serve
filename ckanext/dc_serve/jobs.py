@@ -238,7 +238,8 @@ def _get_intra_dataset_upstream_basins(res_dict, ds) -> list[dict]:
                         logger.warning(
                             f"Condensed resource {u_rid} not accessible, not "
                             f"extracting available features for intra-dataset "
-                            f"basin")
+                            f"basin; traceback follows.")
+                        logger.warning(traceback.format_exc())
                     else:
                         basin_feats = list(set(
                             basin_feats + ds_s3_con.features_innate))

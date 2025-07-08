@@ -382,7 +382,7 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin_ren(
     # the dcserv API is not accessible from within dclab, so we
     # only check the basin definitions.
 
-    # This is  the non-filtered dataset
+    # This is the non-filtered dataset
     with dclab.new_dataset(pathlib.Path(dl_path_2)) as ds:
         assert "area_um" in ds.features_innate
         assert "userdef3" not in ds.features_innate
