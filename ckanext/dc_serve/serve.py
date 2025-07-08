@@ -4,6 +4,7 @@ import functools
 import logging
 import time
 
+import ckan.common as common
 import ckan.logic as logic
 import ckan.model as model
 import ckan.plugins.toolkit as toolkit
@@ -269,12 +270,15 @@ def get_resource_kernel_complement_condensed(r_data):
     for ln in new_logs:
         if ln not in r_data["logs"]:
             r_data["logs"][ln] = new_logs[ln]
-    # basin features (include all features, not only innate features,
-    # because we might have intra-dataset basins)
-    # We include all features that are listed on the first level of basins.
+    # basin features
     basin_feats = ds_con.features_innate
-    for bn_dict in ds_con.basins_get_dicts():
-        basin_feats += bn_dict.get("features", []) or []
+    if common.asbool(common.config.get(
+            "ckanext.dc_serve.enable_intra_dataset_basins", "true")):
+        # Include all features, not only innate features, because we might
+        # have intra-dataset basins.
+        # We include all features that are listed on the first level of basins.
+        for bn_dict in ds_con.basins_get_dicts():
+            basin_feats += bn_dict.get("features", []) or []
     basin_feats = sorted(set(basin_feats))
     r_data["basin_features"][f"condensed-{resource_id[:5]}"] = basin_feats
     r_data["complemented-condensed"] = True
