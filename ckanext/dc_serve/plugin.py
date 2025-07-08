@@ -61,7 +61,12 @@ class DCServePlugin(plugins.SingletonPlugin):
 
         declaration.declare_bool(
             dc_serve_group.create_condensed_datasets, True).set_description(
-            "generate condensed versions of uploaded .rtdc files"
+            "generate condensed versions of uploaded DC files"
+        )
+
+        declaration.declare_bool(
+            dc_serve_group.enable_intra_dataset_basins, True).set_description(
+            "create intra-dataset basins when condensing uploaded DC files"
         )
 
         declaration.declare_bool(

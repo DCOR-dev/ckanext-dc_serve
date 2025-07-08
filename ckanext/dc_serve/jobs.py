@@ -144,8 +144,12 @@ def _generate_condensed_resource(res_dict, path_cond):
         # Features that are in the input, but not in the
         # condensed file.
         feats_input = sorted(feats_src - feats_dst)
-        # Additional upstream basins within this DCOR dataset.
-        basins_upstream = _get_intra_dataset_upstream_basins(res_dict, ds)
+        if common.asbool(common.config.get(
+                "ckanext.dc_serve.enable_intra_dataset_basins", "true")):
+            # Additional upstream basins within this DCOR dataset.
+            basins_upstream = _get_intra_dataset_upstream_basins(res_dict, ds)
+        else:
+            basins_upstream = []
 
     # Write DCOR basins
     with RTDCWriter(path_cond) as hw:

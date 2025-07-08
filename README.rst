@@ -14,7 +14,7 @@ This plugin implements:
   has been created.
 - A background job that uploads the condensed dataset to the S3 object
   store. The temporary location of the condensed dataset that is created
-  can be set by setting the `ckanext.dc_serve.tmp_dir` configuration
+  can be set by setting the ``ckanext.dc_serve.tmp_dir`` configuration
   option.
 - A route that makes the condensed dataset available via
   "/dataset/{id}/resource/{resource_id}/condensed.rtdc"
@@ -26,7 +26,7 @@ This plugin implements:
 
 - CLI:
 
-  - add CKAN command `run-jobs-dc-serve` that runs all background
+  - add CKAN command ``run-jobs-dc-serve`` that runs all background
     jobs for all resources (if not already done)
 
 - Configuration keywords:
@@ -35,10 +35,12 @@ This plugin implements:
     parameter can be set to False to prevent DCOR from generating condensed
     resource files
 
+  - ``ckanext.dc_serve.enable_intra_dataset_basins`` specifies whether
+    intra-dataset basins should be generated or not
+
   - ``ckanext.dc_serve.tmp_dir`` specifies the location of a directory
     used for creating temporary files when condensing datasets; if not
     specified, a temporary directory is used
-
 
 
 Installation
