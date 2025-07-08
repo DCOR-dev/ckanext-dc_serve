@@ -183,7 +183,10 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin(
     with dclab.new_dataset(downstream_path) as ds:
         assert "userdef3" in ds.features_basin
         assert "userdef3" not in ds.features_innate
-        assert np.all(ds["userdef3"] == np.arange(2, 10))
+        if filtered:
+            assert np.all(ds["userdef3"] == np.arange(2, 10))
+        else:
+            assert np.all(ds["userdef3"] == np.arange(47))
 
     # Create a draft dataset using the upstream dataset
     ds_dict, _ = make_dataset_via_s3(
@@ -247,6 +250,10 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin(
         for bn_dict in basins:
             if bn_dict["name"].count("DCOR intra-dataset"):
                 assert "userdef3" in bn_dict["features"]
+            break
+        else:
+            assert False, "no intra-dataset basin"
+
         assert "userdef3" not in ds.features_innate
 
 
@@ -370,13 +377,23 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin_ren(
     with dl_path_2.open("wb") as fd:
         fd.write(response_2.content)
 
+    # Open the condensed resource with dclab and make sure the
+    # "userdef3" feature is in the basins. When testing with docker,
+    # the dcserv API is not accessible from within dclab, so we
+    # only check the basin definitions.
+
     # This is  the non-filtered dataset
     with dclab.new_dataset(pathlib.Path(dl_path_2)) as ds:
         assert "area_um" in ds.features_innate
-        assert "userdef3" in ds.features
-        assert "userdef3" in ds.features_basin
         assert "userdef3" not in ds.features_innate
-        assert np.all(ds["userdef3"] == np.arange(47))
+        basins = ds.basins_get_dicts()
+        for bn_dict in basins:
+            if bn_dict["name"].count("DCOR intra-dataset"):
+                assert bn_dict["mapping"] == "same"
+                assert "userdef3" in bn_dict["features"]
+            break
+        else:
+            assert False, "no intra-dataset basin"
 
     # Download the condensed resource3
     response_3 = requests.get(cond_url_3)
@@ -387,10 +404,14 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin_ren(
     # This is the subsetted dataset.
     with dclab.new_dataset(pathlib.Path(dl_path_3)) as ds:
         assert "area_um" not in ds.features_innate
-        assert "userdef3" in ds.features
-        assert "userdef3" in ds.features_basin
         assert "userdef3" not in ds.features_innate
-        assert np.all(ds["userdef3"] == np.arange(2, 10))
+        for bn_dict in basins:
+            if bn_dict["name"].count("DCOR intra-dataset"):
+                assert bn_dict["mapping"] == "basinmap0"
+                assert "userdef3" in bn_dict["features"]
+            break
+        else:
+            assert False, "no intra-dataset basin"
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
