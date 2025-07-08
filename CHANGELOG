@@ -1,3 +1,5 @@
+1.0.4
+ - fix: resolve self-referencing basin creation in background job
 1.0.3
  - enh: config option `ckanext.dc_serve.enable_intra_dataset_basins` (#6)
  - enh: dig deep to identify basin relationships in uploads (#6)

@@ -5,6 +5,7 @@ import time
 import traceback
 import warnings
 
+import botocore.exceptions
 from ckan import common, model
 import ckan.plugins.toolkit as toolkit
 from dclab import RTDCWriter
@@ -246,6 +247,9 @@ def _get_intra_dataset_upstream_basins(res_dict, ds) -> list[dict]:
                             logger.warning(
                                 f"Workaround for attribute error, try: {ii}")
                             continue
+                        except botocore.exceptions.ClientError:
+                            # We are very likely self-referencing (404)
+                            pass
                         except BaseException:
                             logger.warning(
                                 f"Condensed resource {u_rid} not accessible, "
@@ -259,12 +263,21 @@ def _get_intra_dataset_upstream_basins(res_dict, ds) -> list[dict]:
 
                     # Add DCOR basin
                     u_dcor_url = f"{site_url}/api/3/action/dcserv?id={u_rid}"
+
+                    if res_dict["id"] == u_rid:
+                        # We are self.referencing
+                        basin_name = f"DCOR self-reference {res.name}"
+                        basin_descr = "Basin is the resource itself on DCOR"
+                    else:
+                        basin_name = f"DCOR intra-dataset for {res.name}"
+                        basin_descr = "Upstream DCOR intra-dataset resource"
+
                     basin_dicts.append({
-                        "basin_name": f"DCOR intra-dataset for {res.name}",
+                        "basin_name": basin_name,
                         "basin_type": "remote",
                         "basin_format": "dcor",
                         "basin_locs": [u_dcor_url],
-                        "basin_descr": "Upstream DCOR intra-dataset resource",
+                        "basin_descr": basin_descr,
                         "basin_feats": basin_feats,
                         "basin_map": basin_map,
                     })
