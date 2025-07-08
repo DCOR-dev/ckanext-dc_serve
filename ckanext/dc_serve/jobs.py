@@ -18,7 +18,7 @@ import h5py
 from .res_file_lock import CKANResourceFileLock
 
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def admin_context():
@@ -34,11 +34,11 @@ def generate_condensed_resource(resource, override=False):
     # Check whether we should be generating a condensed resource file.
     if not common.asbool(common.config.get(
             "ckanext.dc_serve.create_condensed_datasets", "true")):
-        log.warning("Generating condensed resources disabled via config")
+        logger.warning("Generating condensed resources disabled via config")
         return False
 
     if not s3.is_available():
-        log.error("S3 not available, not computing condensed resource")
+        logger.error("S3 not available, not computing condensed resource")
         return False
 
     # make sure mimetype is defined
@@ -57,7 +57,7 @@ def generate_condensed_resource(resource, override=False):
              or not s3cc.artifact_exists(resource_id=rid,
                                          artifact="condensed"))):
         # Create the condensed file in a cache location
-        log.info(f"Generating condensed resource {rid}")
+        logger.info(f"Generating condensed resource {rid}")
         cache_loc = common.config.get("ckanext.dc_serve.tmp_dir")
         if not cache_loc:
             cache_loc = None
@@ -93,7 +93,7 @@ def generate_condensed_resource(resource, override=False):
                                                  path_cond=path_cond)
                     return True
         except BaseException:
-            log.error(traceback.format_exc())
+            logger.error(traceback.format_exc())
         finally:
             path_cond.unlink(missing_ok=True)
     return False
@@ -211,9 +211,6 @@ def _get_intra_dataset_upstream_basins(res_dict, ds) -> list[dict]:
 
     # Create a list of all resources in the dataset so far.
     pkg = model.Package.get(res_dict["package_id"])
-    res_map_name2id = {}
-    for res in pkg.resources:
-        res_map_name2id[res.name] = res.id
 
     # Iterate through all basins in `ds` and create basin-create dictionaries.
     basin_dicts = []
@@ -230,13 +227,21 @@ def _get_intra_dataset_upstream_basins(res_dict, ds) -> list[dict]:
             for res in pkg.resources:
                 if _is_basin_of_dataset(ds, res, bn_dict):
                     # upstream resource ID
-                    u_rid = res_map_name2id[res.name]
+                    u_rid = res.id
 
                     # get the actual features available for this basin
                     ds_s3_res = s3cc.get_s3_dc_handle(u_rid, "resource")
-                    ds_s3_con = s3cc.get_s3_dc_handle(u_rid, "condensed")
-                    basin_feats = list(set(
-                        ds_s3_res.features_innate + ds_s3_con.features_innate))
+                    basin_feats = ds_s3_res.features_innate
+                    try:
+                        ds_s3_con = s3cc.get_s3_dc_handle(u_rid, "condensed")
+                    except BaseException:
+                        logger.warning(
+                            f"Condensed resource {u_rid} not accessible, not "
+                            f"extracting available features for intra-dataset "
+                            f"basin")
+                    else:
+                        basin_feats = list(set(
+                            basin_feats + ds_s3_con.features_innate))
 
                     u_dcor_url = f"{site_url}/api/3/action/dcserv?id={u_rid}"
                     basin_dicts.append({
