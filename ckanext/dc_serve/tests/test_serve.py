@@ -21,7 +21,7 @@ data_path = pathlib.Path(__file__).parent / "data"
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db')
+@pytest.mark.usefixtures('with_plugins', 'clean_db')
 def test_auth_forbidden(app):
     user2 = factories.UserWithToken()
 
@@ -45,7 +45,7 @@ def test_auth_forbidden(app):
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db')
+@pytest.mark.usefixtures('with_plugins', 'clean_db')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
 def test_api_dcserv_error(enqueue_job_mock, app):
@@ -116,7 +116,7 @@ def test_api_dcserv_error(enqueue_job_mock, app):
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db')
+@pytest.mark.usefixtures('with_plugins', 'clean_db')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
 def test_api_dcserv_basin(enqueue_job_mock, app, tmp_path):
@@ -175,7 +175,7 @@ def test_api_dcserv_basin(enqueue_job_mock, app, tmp_path):
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db')
+@pytest.mark.usefixtures('with_plugins', 'clean_db')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
 def test_api_dcserv_basin_v2(enqueue_job_mock, app, tmp_path):
@@ -275,7 +275,7 @@ def test_api_dcserv_basin_v2(enqueue_job_mock, app, tmp_path):
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
 @pytest.mark.ckan_config('ckanext.dc_serve.enable_intra_dataset_basins', False)
-@pytest.mark.usefixtures('clean_db')
+@pytest.mark.usefixtures('with_plugins', 'clean_db')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
 def test_api_dcserv_basin_v2_public_not_signed(enqueue_job_mock, app):
@@ -330,7 +330,7 @@ def test_api_dcserv_basin_v2_public_not_signed(enqueue_job_mock, app):
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
 @pytest.mark.ckan_config('ckanext.dc_serve.enable_intra_dataset_basins', False)
-@pytest.mark.usefixtures('clean_db')
+@pytest.mark.usefixtures('with_plugins', 'clean_db')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
 def test_api_dcserv_basin_v2_private_presigned(enqueue_job_mock, app):
@@ -383,7 +383,7 @@ def test_api_dcserv_basin_v2_private_presigned(enqueue_job_mock, app):
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
 @pytest.mark.ckan_config('ckanext.dc_serve.enable_intra_dataset_basins', False)
-@pytest.mark.usefixtures('clean_db')
+@pytest.mark.usefixtures('with_plugins', 'clean_db')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
 def test_api_dcserv_basin_v2_private_presigned_expiration_time(
@@ -438,7 +438,7 @@ def test_api_dcserv_basin_v2_private_presigned_expiration_time(
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db')
+@pytest.mark.usefixtures('with_plugins', 'clean_db')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
 def test_api_dcserv_feature_list(enqueue_job_mock, app):
@@ -471,7 +471,7 @@ def test_api_dcserv_feature_list(enqueue_job_mock, app):
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db')
+@pytest.mark.usefixtures('with_plugins', 'clean_db')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
 def test_api_dcserv_logs(enqueue_job_mock, app):
@@ -504,7 +504,7 @@ def test_api_dcserv_logs(enqueue_job_mock, app):
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db')
+@pytest.mark.usefixtures('with_plugins', 'clean_db')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
 def test_api_dcserv_metadata(enqueue_job_mock, app):
@@ -538,7 +538,7 @@ def test_api_dcserv_metadata(enqueue_job_mock, app):
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db')
+@pytest.mark.usefixtures('with_plugins', 'clean_db')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
 def test_api_dcserv_size(enqueue_job_mock, app):
@@ -572,7 +572,7 @@ def test_api_dcserv_size(enqueue_job_mock, app):
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db')
+@pytest.mark.usefixtures('with_plugins', 'clean_db')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
 def test_api_dcserv_tables(enqueue_job_mock, app):
@@ -607,7 +607,7 @@ def test_api_dcserv_tables(enqueue_job_mock, app):
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db')
+@pytest.mark.usefixtures('with_plugins', 'clean_db')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
 def test_api_dcserv_trace_list(enqueue_job_mock, app):
@@ -642,7 +642,7 @@ def test_api_dcserv_trace_list(enqueue_job_mock, app):
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db')
+@pytest.mark.usefixtures('with_plugins', 'clean_db')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
 def test_api_dcserv_valid(enqueue_job_mock, app):
