@@ -274,8 +274,7 @@ def test_api_dcserv_basin_v2(enqueue_job_mock, app, tmp_path):
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.ckan_config('ckanext.dc_serve.enable_intra_dataset_basins',
-                         'false')
+@pytest.mark.ckan_config('ckanext.dc_serve.enable_intra_dataset_basins', False)
 @pytest.mark.usefixtures('clean_db')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
@@ -330,8 +329,7 @@ def test_api_dcserv_basin_v2_public_not_signed(enqueue_job_mock, app):
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.ckan_config('ckanext.dc_serve.enable_intra_dataset_basins',
-                         'false')
+@pytest.mark.ckan_config('ckanext.dc_serve.enable_intra_dataset_basins', False)
 @pytest.mark.usefixtures('clean_db')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
@@ -384,8 +382,7 @@ def test_api_dcserv_basin_v2_private_presigned(enqueue_job_mock, app):
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.ckan_config('ckanext.dc_serve.enable_intra_dataset_basins',
-                         'false')
+@pytest.mark.ckan_config('ckanext.dc_serve.enable_intra_dataset_basins', False)
 @pytest.mark.usefixtures('clean_db')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
