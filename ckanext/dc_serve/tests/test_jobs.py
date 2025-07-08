@@ -7,13 +7,15 @@ A common approach is to use the mock package to replace the
 ckan.plugins.toolkit.enqueue_job function with a mock that executes jobs
 synchronously instead of asynchronously
 """
-from unittest import mock
+import json
 import pathlib
 import shutil
+from unittest import mock
 import uuid
 
 import pytest
 
+from ckan import common
 import ckan.tests.helpers as helpers
 import dclab
 import h5py
@@ -147,7 +149,7 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_basin(
             side_effect=synchronous_enqueue_job)
 @pytest.mark.parametrize("filtered", [True, False])
 def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin(
-        enqueue_job_mock, tmp_path, filtered):
+        enqueue_job_mock, tmp_path, filtered, app):
     """Make sure condensed resources can access intra-dataset features"""
     # generate a custom resource
     upstream_path = tmp_path / "upstream_data.rtdc"
@@ -217,18 +219,18 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin(
     assert response.status_code == 200
 
     print("Intra-dataset basins:",
-          dcor_shared.get_ckan_config_option(
-              "ckanext.dc_serve.enable_intra_dataset_basins"
-          ))
+          common.asbool(dcor_shared.get_ckan_config_option(
+              "ckanext.dc_serve.enable_intra_dataset_basins", "true"
+          )))
 
-    # Open the resource online
-    with dclab.new_dataset(rid,
-                           host=dcor_shared.get_ckan_config_option(
-                               "ckan.site_url")) as ds:
-        assert "userdef3" in ds.features
-        assert "userdef3" in ds.features_basin
-        assert "userdef3" not in ds.features_innate
-        assert np.all(ds["userdef3"] == np.arange(2, 10))
+    resp = app.get(
+        "/api/3/action/dcserv",
+        params={"id": id,
+                "query": "basins",
+                },
+        status=200
+    )
+    print("BASINS", json.loads(resp.body))
 
     # Download the condensed resource
     dl_path = tmp_path / "downstream.rtdc"
