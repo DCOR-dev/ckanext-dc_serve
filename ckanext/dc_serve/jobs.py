@@ -1,6 +1,7 @@
 import logging
 import pathlib
 import tempfile
+import time
 import traceback
 import warnings
 
@@ -232,17 +233,29 @@ def _get_intra_dataset_upstream_basins(res_dict, ds) -> list[dict]:
                     # get the actual features available for this basin
                     ds_s3_res = s3cc.get_s3_dc_handle(u_rid, "resource")
                     basin_feats = ds_s3_res.features_innate
-                    try:
-                        ds_s3_con = s3cc.get_s3_dc_handle(u_rid, "condensed")
-                    except BaseException:
-                        logger.warning(
-                            f"Condensed resource {u_rid} not accessible, not "
-                            f"extracting available features for intra-dataset "
-                            f"basin; traceback follows.")
-                        logger.warning(traceback.format_exc())
-                    else:
-                        basin_feats = list(set(
-                            basin_feats + ds_s3_con.features_innate))
+                    for ii in range(10):
+                        # Workaround. I experienced AttributeErrors during
+                        # testing ('S3File' object has no attribute 'seek'),
+                        # possibly due to MinIO not having finalized the
+                        # upload. In this case, simply try again.
+                        try:
+                            ds_s3_con = s3cc.get_s3_dc_handle(u_rid,
+                                                              "condensed")
+                        except AttributeError:
+                            time.sleep(1)
+                            logger.warning(
+                                f"Workaround for attribute error, try: {ii}")
+                            continue
+                        except BaseException:
+                            logger.warning(
+                                f"Condensed resource {u_rid} not accessible, "
+                                f"not extracting available features for "
+                                f"intra-dataset basin; traceback follows.")
+                            logger.warning(traceback.format_exc())
+                        else:
+                            basin_feats = list(set(
+                                basin_feats + ds_s3_con.features_innate))
+                        break
 
                     # Add DCOR basin
                     u_dcor_url = f"{site_url}/api/3/action/dcserv?id={u_rid}"
