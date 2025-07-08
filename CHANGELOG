@@ -1,4 +1,5 @@
 1.0.3
+ - enh: config option `ckanext.dc_serve.enable_intra_dataset_basins` (#6)
  - enh: dig deep to identify basin relationships in uploads (#6)
  - enh: include intra-dataset basin features in condensed features (#6)
 1.0.2

@@ -34,7 +34,7 @@ data_path = pathlib.Path(__file__).parent / "data"
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db', 'with_request_context')
+@pytest.mark.usefixtures('with_plugins', 'clean_db', 'with_request_context')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
 def test_create_condensed_dataset_job_upload_s3(enqueue_job_mock, tmp_path):
@@ -77,7 +77,7 @@ def test_create_condensed_dataset_job_upload_s3(enqueue_job_mock, tmp_path):
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
 @pytest.mark.ckan_config('ckanext.dc_serve.create_condensed_datasets', "false")
-@pytest.mark.usefixtures('clean_db', 'with_request_context')
+@pytest.mark.usefixtures('with_plugins', 'clean_db', 'with_request_context')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
 def test_do_not_create_condensed_by_config_dataset_job_upload_s3(
@@ -99,7 +99,7 @@ def test_do_not_create_condensed_by_config_dataset_job_upload_s3(
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db', 'with_request_context')
+@pytest.mark.usefixtures('with_plugins', 'clean_db', 'with_request_context')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
 def test_upload_condensed_dataset_to_s3_job_and_verify_basin(
@@ -142,11 +142,12 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_basin(
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db', 'with_request_context')
+@pytest.mark.usefixtures('with_plugins', 'clean_db', 'with_request_context')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
+@pytest.mark.parametrize("filtered", [True, False])
 def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin(
-        enqueue_job_mock, tmp_path):
+        enqueue_job_mock, tmp_path, filtered):
     """Make sure condensed resources can access intra-dataset features"""
     # generate a custom resource
     upstream_path = tmp_path / "upstream_data.rtdc"
@@ -170,7 +171,7 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin(
         ds.apply_filter()
         ds.export.hdf5(path=downstream_path,
                        features=["deform"],
-                       filtered=True,
+                       filtered=filtered,
                        logs=True,
                        tables=True,
                        basins=True,
@@ -230,7 +231,7 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin(
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db', 'with_request_context')
+@pytest.mark.usefixtures('with_plugins', 'clean_db', 'with_request_context')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
 def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin_ren(
@@ -373,7 +374,7 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin_ren(
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
-@pytest.mark.usefixtures('clean_db', 'with_request_context')
+@pytest.mark.usefixtures('with_plugins', 'clean_db', 'with_request_context')
 @mock.patch('ckan.plugins.toolkit.enqueue_job',
             side_effect=synchronous_enqueue_job)
 def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin_ctl(
