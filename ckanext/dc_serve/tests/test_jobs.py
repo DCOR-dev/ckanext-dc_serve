@@ -225,7 +225,7 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin(
 
     resp = app.get(
         "/api/3/action/dcserv",
-        params={"id": id,
+        params={"id": rid,
                 "query": "basins",
                 },
         status=200
