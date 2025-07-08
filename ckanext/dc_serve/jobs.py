@@ -243,6 +243,7 @@ def _get_intra_dataset_upstream_basins(res_dict, ds) -> list[dict]:
                         basin_feats = list(set(
                             basin_feats + ds_s3_con.features_innate))
 
+                    # Add DCOR basin
                     u_dcor_url = f"{site_url}/api/3/action/dcserv?id={u_rid}"
                     basin_dicts.append({
                         "basin_name": f"DCOR intra-dataset for {res.name}",
