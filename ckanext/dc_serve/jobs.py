@@ -300,11 +300,6 @@ def _is_basin_of_dataset(ds,
     basin_dict:
         Corresponding basin dictionary to check against
     """
-    if resource_basin.name in basin_dict["paths"]:
-        # This is the simplest case. The file was uploaded directly
-        # alongside its basin using the same name.
-        return True
-
     # Open the potential basin and check its run identifier.
     ds_runid = ds.get_measurement_identifier()
     with get_dc_instance(resource_basin.id) as ds_bn:
