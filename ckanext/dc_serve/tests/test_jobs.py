@@ -219,7 +219,7 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin(
     assert response.status_code == 200
 
     print("Intra-dataset basins:",
-          common.asbool(dcor_shared.get_ckan_config_option(
+          common.asbool(common.config.get(
               "ckanext.dc_serve.enable_intra_dataset_basins", "true"
           )))
 
