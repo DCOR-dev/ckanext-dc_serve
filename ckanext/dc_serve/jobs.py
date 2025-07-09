@@ -323,6 +323,7 @@ def _is_basin_of_dataset(ds,
     if mapping_is_same and bn_runid == ds_runid:
         # This is an ideal case. Both run identifiers match and the mapping
         # is identical.
+        logger.info(f"same {bn_runid} {ds_runid}")
         return True
 
     elif not mapping_is_same and ds_runid.rsplit("_", 1)[0] == bn_runid:
@@ -330,6 +331,7 @@ def _is_basin_of_dataset(ds,
         # run identifiers with an underscore (dclab 0.65.0 and dcnum 0.25.11
         # correctly support this), then the referrer has a run identifier
         # that starts with that of the basin.
+        logger.info(f"basinmap {bn_runid} {ds_runid}")
         return True
 
     # None of the above cases matched. This is not a basin of ds.
