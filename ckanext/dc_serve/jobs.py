@@ -233,7 +233,7 @@ def _get_intra_dataset_upstream_basins(res_dict, ds) -> list[dict]:
 
                     # get the actual features available for this basin
                     ds_s3_res = s3cc.get_s3_dc_handle(u_rid, "resource")
-                    basin_feats = _get_remote_features_from_basins(ds_s3_res)
+                    basin_feats = _get_all_features_with_remote(ds_s3_res)
                     for ii in range(10):
                         # Workaround. I experienced AttributeErrors during
                         # testing ('S3File' object has no attribute 'seek'),
@@ -257,7 +257,7 @@ def _get_intra_dataset_upstream_basins(res_dict, ds) -> list[dict]:
                                 f"intra-dataset basin; traceback follows.")
                             logger.warning(traceback.format_exc())
                         else:
-                            con_f = _get_remote_features_from_basins(ds_s3_con)
+                            con_f = _get_all_features_with_remote(ds_s3_con)
                             basin_feats = sorted(set(basin_feats + con_f))
                         break
 
@@ -285,9 +285,9 @@ def _get_intra_dataset_upstream_basins(res_dict, ds) -> list[dict]:
     return basin_dicts
 
 
-def _get_remote_features_from_basins(ds):
-    """Return list of remote features from basins of this dataset"""
-    features = []
+def _get_all_features_with_remote(ds):
+    """Return features, including remote features from basins"""
+    features = ds.features
     for bn in ds.basins_get_dicts():
         if bn["type"] == "remote":
             features += bn["features"]
