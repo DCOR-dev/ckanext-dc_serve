@@ -573,7 +573,7 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin_chn(
         assert "userdef3" not in ds.features_innate
         basins = ds.basins_get_dicts()
         print("BASINS3", basins)
-        print("RUNID2", ds.get_measurement_identifier())
+        print("RUNID3", ds.get_measurement_identifier())
         for bn_dict in basins:
             if bn_dict["name"].count("DCOR intra-dataset for luke.rtdc"):
                 assert bn_dict["mapping"] == "basinmap1"
