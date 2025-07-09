@@ -447,6 +447,7 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin_chn(
     with dclab.new_dataset(upstream_path) as ds:
         ds.filter.manual[:] = True
         ds.filter.manual[:2] = False
+        ds.apply_filter()
         ds.export.hdf5(path=midstream_path,
                        features=["deform", "area_um"],
                        filtered=True,
