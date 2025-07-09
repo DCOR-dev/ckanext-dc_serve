@@ -233,7 +233,7 @@ def _get_intra_dataset_upstream_basins(res_dict, ds) -> list[dict]:
 
                     # get the actual features available for this basin
                     ds_s3_res = s3cc.get_s3_dc_handle(u_rid, "resource")
-                    basin_feats = ds_s3_res.features_innate
+                    basin_feats = ds_s3_res.features
                     for ii in range(10):
                         # Workaround. I experienced AttributeErrors during
                         # testing ('S3File' object has no attribute 'seek'),
@@ -258,7 +258,7 @@ def _get_intra_dataset_upstream_basins(res_dict, ds) -> list[dict]:
                             logger.warning(traceback.format_exc())
                         else:
                             basin_feats = list(set(
-                                basin_feats + ds_s3_con.features_innate))
+                                basin_feats + ds_s3_con.features))
                         break
 
                     # Add DCOR basin
