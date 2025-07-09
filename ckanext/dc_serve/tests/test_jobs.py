@@ -473,7 +473,7 @@ def test_upload_condensed_dataset_to_s3_job_and_verify_intra_dataset_basin_chn(
     with dclab.new_dataset(downstream_path) as ds:
         assert "userdef3" in ds.features_basin
         assert "userdef3" not in ds.features_innate
-        assert np.all(ds["userdef3"] == np.arange(4, 10))
+        assert np.all(ds["userdef3"] == np.arange(4, 12))
 
     # Create a draft dataset using the upstream dataset
     ds_dict = make_dataset_via_s3(
