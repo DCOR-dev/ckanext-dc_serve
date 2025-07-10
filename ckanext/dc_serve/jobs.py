@@ -225,7 +225,7 @@ def _get_intra_dataset_upstream_basins(res_dict, ds) -> list[dict]:
             else:
                 basin_map = ds[map_data][:]
 
-            # check whether the file name is in the list of resources.
+            # check whether the basin is in the list of resources.
             for res in pkg.resources:
                 if _is_basin_of_dataset(ds, res, bn_dict):
                     # upstream resource ID
@@ -300,6 +300,9 @@ def _is_basin_of_dataset(ds,
                          ):
     """Check whether a CKAN resource is a basin for a dataset
 
+    Return True when `resource_basin` is a basin of `ds`
+    as described by `basin_dict`.
+
     Parameters
     ----------
     ds:
@@ -313,9 +316,15 @@ def _is_basin_of_dataset(ds,
     ds_runid = ds.get_measurement_identifier()
     with get_dc_instance(resource_basin.id) as ds_bn:
         bn_runid = ds_bn.get_measurement_identifier()
+    bn_runid_dict = basin_dict.get("identifier")
 
-    if not bn_runid:
+    if not bn_runid or not bn_runid_dict:
         # No run identifier specified -> no basin inference possible.
+        return False
+
+    if bn_runid != bn_runid_dict:
+        # Basin-resource mismatch.
+        # This resource is not the measurement referenced in this basin.
         return False
 
     mapping_is_same = basin_dict.get("mapping", "same") == "same"
@@ -323,16 +332,14 @@ def _is_basin_of_dataset(ds,
     if mapping_is_same and bn_runid == ds_runid:
         # This is an ideal case. Both run identifiers match and the mapping
         # is identical.
-        print(f"same {bn_runid} {ds_runid}")
         return True
 
-    elif not mapping_is_same and ds_runid.rsplit("_", 1)[0] == bn_runid:
-        # This is a slightly more complicated cases. If you split the
-        # run identifiers with an underscore (dclab 0.65.0 and dcnum 0.25.11
-        # correctly support this), then the referrer has a run identifier
-        # that starts with that of the basin.
-        print(f"basinmap {bn_runid} {ds_runid}")
+    elif not mapping_is_same and ds_runid.startswith(bn_runid):
+        # This is a slightly more complicated cases. If the mapping
+        # is not "same", this means that we have filtered datasets.
+        # For a filtered dataset, the identifier is the identifier of
+        # its basin plus a unique string.
         return True
 
-    # None of the above cases matched. This is not a basin of ds.
+    # None of the above cases matched. This is not a direct basin of ds.
     return False

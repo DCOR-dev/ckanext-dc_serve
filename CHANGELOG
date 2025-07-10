@@ -1,6 +1,8 @@
 1.0.5
+ - fix: correctly identify intra-dataset basins via basin identifiers
  - fix: list all features available in intra-dataset basins
  - fix: disable simple name-based basin check for intra-dataset basins
+ - setup: bump dclab to 0.66.0
 1.0.4
  - fix: resolve self-referencing basin creation in background job
 1.0.3
