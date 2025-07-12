@@ -17,6 +17,7 @@ class DCServePlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IBlueprint)
     plugins.implements(plugins.IClick)
     plugins.implements(plugins.IConfigurer, inherit=True)
+    plugins.implements(plugins.IConfigDeclaration, inherit=True)
     plugins.implements(plugins.IResourceController, inherit=True)
     plugins.implements(plugins.IActions, inherit=True)
     plugins.implements(plugins.ITemplateHelpers)
@@ -69,8 +70,7 @@ class DCServePlugin(plugins.SingletonPlugin):
             "create intra-dataset basins when condensing uploaded DC files"
         )
 
-        declaration.declare_bool(
-            dc_serve_group.tmp_dir, True).set_description(
+        declaration.declare(dc_serve_group.tmp_dir).set_description(
             "temporary directory for creating condensed resource files"
         )
 

@@ -1,3 +1,5 @@
+1.0.6
+ - fix: plugin did not implement `IConfigDeclaration`
 1.0.5
  - fix: correctly identify intra-dataset basins via basin identifiers
  - fix: list all features available in intra-dataset basins
