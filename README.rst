@@ -5,7 +5,7 @@ ckanext-dc_serve
 
 This CKAN plugin provides an API for accessing DC data. The python
 package dclab implements a client library (``dclab.rtdc_dataset.fmt_dcor``)
-to access this API. Shape-Out 2 offers a GUI via *File - Load DCOR data*.
+to access this API. DCscope offers a GUI via *File - Load DCOR data*.
 
 This plugin implements:
 
