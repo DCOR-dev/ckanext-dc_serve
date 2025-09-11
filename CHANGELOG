@@ -1,3 +1,5 @@
+1.0.7
+ - docs: rename shapeout to dcscope
 1.0.6
  - fix: plugin did not implement `IConfigDeclaration`
 1.0.5
