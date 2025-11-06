@@ -150,7 +150,16 @@ def dcserv(context, data_dict=None):
 @functools.lru_cache(maxsize=1024)
 def is_dc_resource(res_id) -> bool:
     resource = model.Resource.get(res_id)
-    return resource.mimetype in DC_MIME_TYPES
+    rs_name = resource.name
+    is_dc = (
+        # DCOR says this is a DC resource
+        resource.mimetype in DC_MIME_TYPES
+        # The suffix indicates that this is a DC resource
+        # (in case ckanext-dcor_schemas has not yet updated the metadata)
+        or (rs_name.count(".")
+            and rs_name.rsplit(".", 1)[-1] in ["dc", "rtdc"])
+    )
+    return is_dc
 
 
 def get_resource_basins_dicts_private(resource_id):
