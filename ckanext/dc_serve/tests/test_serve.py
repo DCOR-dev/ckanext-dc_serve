@@ -8,7 +8,7 @@ import uuid
 
 import ckan.tests.factories as factories
 import dclab
-from dclab.rtdc_dataset import fmt_dcor, fmt_http
+from dclab.rtdc_dataset import fmt_http
 import h5py
 import numpy as np
 
