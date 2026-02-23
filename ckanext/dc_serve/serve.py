@@ -45,15 +45,9 @@ def get_dc_tables(ds, from_basins: bool = False) -> dict:
                 tables.update(get_dc_tables(bn.ds))
     else:
         for tab in ds.tables:
-            # A table is a 2D array
-            tab_array = ds.tables[tab][:]
-            tab_list = tab_array.tolist()
-            if np.any(np.isnan(tab_array)):
-                # NaN is not part of the JSON specification, so we convert it
-                # to None before sending the response.
-                tab_list = [[v if not np.isnan(v) else None for v in column]
-                            for column in tab_list]
-
+            tab_list = ds.tables[tab][:].tolist()
+            # find any NaNs and replace them with None (JSON compatibility)
+            tab_list = replace_nan_with_none_recursive(tab_list)
             tables[tab] = (ds.tables[tab].keys(),
                            tab_list
                            )
@@ -303,6 +297,14 @@ def get_resource_kernel_complement_condensed(r_data):
     basin_feats = sorted(set(basin_feats))
     r_data["basin_features"][f"condensed-{resource_id[:5]}"] = basin_feats
     r_data["complemented-condensed"] = True
+
+
+def replace_nan_with_none_recursive(data):
+    if isinstance(data, (list, tuple)):
+        return [replace_nan_with_none_recursive(item) for item in data]
+    else:
+        return data if not np.isnan(data) else None
+
 
 
 atexit.register(is_dc_resource.cache_clear)
