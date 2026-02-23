@@ -661,8 +661,10 @@ def test_api_dcserv_tables_with_nan(enqueue_job_mock, app, tmp_path):
     assert "nan-array" in jres["result"]
     names, data = jres["result"]["nan-array"]
     assert "peter" in names
-    # the rec-array thing introduces the empty axis 1
-    assert data[1][0][2] is None
+    # Note that
+    # 1. the rec-array thing introduces the empty axis 1
+    # 2. the axes are transposed
+    assert data[2][0][1] is None
 
     # now open the same dataset with dclab
     host = f"http://{app.config['CKAN_HOST']}:{app.config['CKAN_PORT']}"
