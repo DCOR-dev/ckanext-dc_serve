@@ -306,6 +306,5 @@ def replace_nan_with_none_recursive(data):
         return data if not np.isnan(data) else None
 
 
-
 atexit.register(is_dc_resource.cache_clear)
 atexit.register(get_resource_kernel_base.cache_clear)
