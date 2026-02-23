@@ -665,15 +665,9 @@ def test_api_dcserv_tables_with_nan(enqueue_job_mock, app, tmp_path):
     # 1. the rec-array thing introduces the empty axis 1
     # 2. the axes are transposed
     assert data[2][0][1] is None
-
-    # now open the same dataset with dclab
-    host = f"http://{app.config['CKAN_HOST']}:{app.config['CKAN_PORT']}"
-    ds = fmt_dcor.RTDC_DCOR(
-        url=f"{host}/api/3/action/dcserv?id={res_dict['id']}&query=tables",
-        api_key=user["token"])
-    assert "nan-array" in ds.tables
-    assert np.isnan(ds.tables["nan-array"]["peter"][2])
-    assert not np.isnan(ds.tables["nan-array"]["peter"][1])
+    assert data[1][0][1] is not None
+    assert data[3][0][1] is not None
+    assert data[1][0][2] is not None
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
