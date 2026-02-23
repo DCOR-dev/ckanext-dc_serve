@@ -13,6 +13,8 @@ from dcor_shared import (
     DC_MIME_TYPES, s3cc, is_resource_private,
 )
 
+import numpy as np
+
 
 logger = logging.getLogger(__name__)
 
@@ -43,8 +45,18 @@ def get_dc_tables(ds, from_basins: bool = False) -> dict:
                 tables.update(get_dc_tables(bn.ds))
     else:
         for tab in ds.tables:
+            # A table is a 2D array
+            tab_array = ds.tables[tab][:]
+            tab_list = tab_array.tolist()
+            if np.any(np.isnan(tab_array)):
+                # NaN is not part of the JSON specification, so we convert it
+                # to None before sending the response.
+                tab_list = [[v if not np.isnan(v) else None for v in column]
+                            for column in tab_list]
+
             tables[tab] = (ds.tables[tab].keys(),
-                           ds.tables[tab][:].tolist())
+                           tab_list
+                           )
 
     return tables
 

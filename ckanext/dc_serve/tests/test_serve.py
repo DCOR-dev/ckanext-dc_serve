@@ -8,8 +8,9 @@ import uuid
 
 import ckan.tests.factories as factories
 import dclab
-from dclab.rtdc_dataset import fmt_http
+from dclab.rtdc_dataset import fmt_dcor, fmt_http
 import h5py
+import numpy as np
 
 import pytest
 
@@ -604,6 +605,72 @@ def test_api_dcserv_tables(enqueue_job_mock, app):
     assert "src_cytoshot_monitor" in jres["result"]
     names, data = jres["result"]["src_cytoshot_monitor"]
     assert "brightness" in names
+
+
+@pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')
+@pytest.mark.usefixtures('with_plugins', 'clean_db')
+@mock.patch('ckan.plugins.toolkit.enqueue_job',
+            side_effect=synchronous_enqueue_job)
+def test_api_dcserv_tables_with_nan(enqueue_job_mock, app, tmp_path):
+    """
+    Tables may contain NaN-data. These should be converted into None
+    before they are encoded with JSON and sent as response.
+    """
+    user = factories.UserWithToken()
+    owner_org = factories.Organization(users=[{
+        'name': user['id'],
+        'capacity': 'admin'
+    }])
+    # Note: `call_action` bypasses authorization!
+    create_context = {'ignore_auth': False,
+                      'user': user['name'], 'api_version': 3}
+
+    # generate a resource with nan-valued tables
+    path_mod = tmp_path / 'blood_nan.rtdc'
+    shutil.copy2(data_path / "cytoshot_blood.rtdc", path_mod)
+
+    # generate a table
+    table_data = {
+        "fox": np.arange(10),
+        "peter": np.linspace(-1, 1, 10),
+        "deril": np.zeros(10),
+    }
+    # this is the important bit for this test
+    table_data["peter"][2] = np.nan
+
+    with dclab.RTDCWriter(path_mod) as hw:
+        hw.store_table("nan-array", table_data)
+
+    # create a dataset
+    ds_dict, res_dict = make_dataset_via_s3(
+        create_context=create_context,
+        owner_org=owner_org,
+        resource_path=path_mod,
+        activate=True)
+
+    resp = app.get(
+        "/api/3/action/dcserv",
+        params={"id": res_dict["id"],
+                "query": "tables",
+                },
+        headers={"Authorization": user["token"]},
+        status=200
+    )
+    jres = json.loads(resp.body)
+    assert jres["success"]
+    assert "nan-array" in jres["result"]
+    names, data = jres["result"]["nan-array"]
+    assert "peter" in names
+    assert data[1][2] is None
+
+    # now open the same dataset with dclab
+    host = f"http://{app.config['CKAN_HOST']}:{app.config['CKAN_PORT']}"
+    ds = fmt_dcor.RTDC_DCOR(
+        url=f"{host}/api/3/action/dcserv?id={res_dict['id']}&query=tables",
+        api_key=user["token"])
+    assert "nan-array" in ds.tables
+    assert np.isnan(ds.tables["nan-array"]["peter"][2])
+    assert not np.isnan(ds.tables["nan-array"]["peter"][1])
 
 
 @pytest.mark.ckan_config('ckan.plugins', 'dcor_schemas dc_serve')

@@ -1,3 +1,5 @@
+1.0.9
+ - fix: handle table data that contain NaN values
 1.0.8
  - fix: if mimetype not available, check suffix for detecting DC data
  - tests: own the docker image
