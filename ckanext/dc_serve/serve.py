@@ -19,10 +19,6 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 
-def admin_context():
-    return {'ignore_auth': True, 'user': 'default'}
-
-
 def get_dc_logs(ds, from_basins: bool = False) -> dict:
     """Return logs of a dataset, optionally looking only in its basins"""
     logs = {}
