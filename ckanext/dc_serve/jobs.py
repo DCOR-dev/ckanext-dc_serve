@@ -24,7 +24,10 @@ logger = logging.getLogger(__name__)
 
 
 def admin_context():
-    return {'ignore_auth': True, 'user': 'default'}
+    """Context of the site user (sysadmin)"""
+    site_user = toolkit.get_action("get_site_user")({"ignore_auth": True},
+                                                    {})
+    return {'ignore_auth': True, 'user': site_user["name"]}
 
 
 @rqjob_register(ckanext="dc_serve",
